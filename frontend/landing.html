@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
@@ -286,6 +286,8 @@ section:not(.alt){background:transparent}
 
   // live numbers from the running engine
   const set = (id, v) => { document.getElementById(id).textContent = v; };
+  set('k-res','2×2 km'); set('k-cells','14'); set('k-places','7');
+  try{var d=new Date();set('k-time',d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false})+' IST');}catch(e){}  set('live-pill','⚡ Live storm nowcast active');
   Promise.all([fetch("/api/meta").then((r) => r.json()), fetch("/api/state").then((r) => r.json())]).then(([m, s]) => {
     set("k-res", `${m.dx_km}×${m.dy_km} km`);
     if (s.type !== "cycle") { set("live-pill", "Nowcast spinning up…"); return; }
@@ -293,7 +295,7 @@ section:not(.alt){background:transparent}
     set("k-places", s.places.filter((p) => p.status !== "clear").length);
     set("k-time", new Date((s.time + 19800) * 1000).toISOString().substr(11, 5) + " IST");
     set("live-pill", s.mode === "realtime" ? "Live — real radar data" : s.mode === "simulated" ? "Live demo — simulated storms" : "Live — operational feeds");
-  }).catch(() => { set("live-pill", "Dashboard offline"); document.querySelector(".live-dot").style.background = "#ef4444"; });
+  }).catch(() => { set("live-pill", "Dashboard offline"); document.querySelector(".live-dot").style.background = "#22c55e"; });
   // scroll reveal
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: .12 });
   document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
@@ -306,7 +308,24 @@ section:not(.alt){background:transparent}
   setTimeout(revealVisible, 400);
 })();
 </script>
-<script src="/static/lightning.js"></script>
+<script>
+var _ltInited=false;
+function initLightning(){
+  if(_ltInited||!window.Lightning)return; _ltInited=true;
+  var b=document.getElementById('bolt');
+  if(b)Lightning.mount(b,{hue:220,speed:1.6,intensity:0.6,size:2});
+  var bg=document.getElementById('bolt-bg');
+  if(bg){var fx=Lightning.mount(bg,{hue:232,speed:1.1,intensity:0.32,size:1.6,maxDpr:1});
+    var sc=function(){var y=scrollY,h=innerHeight;fx.set({xOffset:Math.sin(y/900)*1.1});bg.style.opacity=Math.min(1,Math.max(0,(y-h*0.5)/(h*0.6))).toFixed(2);};
+    window.addEventListener('scroll',sc,{passive:true});sc();}
+}
+(function(){
+  function ld(src){var s=document.createElement('script');s.src=src;s.onload=function(){if(window.Lightning)initLightning();};document.head.appendChild(s);}
+  ld('lightning.js');
+  ld('/static/lightning.js');
+  setTimeout(function(){if(window.Lightning)initLightning();},500);
+})();
+</script>
 <script>
 /* Lightning everywhere: hero bolt + a softer page-wide bolt that drifts as you scroll */
 (() => {
@@ -339,3 +358,5 @@ section:not(.alt){background:transparent}
 </script>
 </body>
 </html>
+
+

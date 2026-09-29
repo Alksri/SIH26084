@@ -1,0 +1,12 @@
+﻿[build]
+  publish = "frontend"
+
+[[redirects]]
+  from = "/app"
+  to = "/app.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard"
+  to = "/app.html"
+  status = 200
