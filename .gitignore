@@ -1,0 +1,14 @@
+.env
+.env.*
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/knowledge/.embeddings.json
+.DS_Store
+*.log
+node_modules/
+dist/
+.idea/
+.vscode/

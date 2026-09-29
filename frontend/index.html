@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>BUMBLEBLE — Live Storm Nowcast</title>
+<script>
+  // apply saved / system theme before first paint (no flash)
+  (function () { try { var q = new URLSearchParams(location.search).get("theme"); var t = q || localStorage.getItem("theme"); if (!t) t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"; document.documentElement.dataset.theme = t; } catch (e) {} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <button class="icon-btn only-mobile" id="btn-left" aria-label="Layers">
+    <svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5-10-5Zm-10 9 10 5 10-5M2 16l10 5 10-5"/></svg>
+  </button>
+  <div class="brand">
+    <div class="logo"><canvas class="fx-logo" id="fx-logo" aria-hidden="true"></canvas><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></div>
+    <div class="brand-text">
+      <h1>BUMBLEBLE</h1>
+      <span data-i18n="tagline">Convective storm nowcast · 0–6 h · hyper-local</span>
+    </div>
+  </div>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="search" type="search" autocomplete="off" data-i18n-ph="search" placeholder="Search city, airport or district…">
+    <div id="search-results" class="search-results"></div>
+  </div>
+
+  <div class="clock-chips">
+    <div class="chip"><small>IST</small><b id="clock-ist" class="mono">--:--:--</b></div>
+    <div class="chip hide-sm"><small>UTC</small><b id="clock-utc" class="mono">--:--</b></div>
+    <div class="chip hide-md"><small data-i18n="analysis">Analysis</small><b id="analysis-time" class="mono">--</b></div>
+  </div>
+
+  <div class="top-actions">
+    <div class="tool-group">
+      <button class="icon-btn" id="btn-undo" title="Undo (Ctrl+Z)" disabled><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button class="icon-btn" id="btn-redo" title="Redo (Ctrl+Y)" disabled><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+    </div>
+    <button class="icon-btn" id="btn-share" title="Copy a link to this exact view"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg></button>
+    <div class="export-wrap">
+      <button class="icon-btn" id="btn-export" title="Export / download"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></button>
+      <div class="export-menu" id="export-menu">
+        <a href="/api/export/bulletin.html" target="_blank" rel="noopener">📄 <b>Bulletin</b><small>Printable / save as PDF</small></a>
+        <a href="/api/export/places.csv" download>📊 <b>Arrivals CSV</b><small>All places, ETA, hazards</small></a>
+        <a href="/api/export/nowcast.geojson" download>🗺️ <b>GeoJSON</b><small>Storms, tracks, places for QGIS/ArcGIS</small></a>
+        <a id="export-png" href="#" download="bumbleble-layer.png">🖼️ <b>Current layer PNG</b><small>The hazard map you are viewing</small></a>
+      </div>
+    </div>
+    <span id="mode-badge" class="status-pill"><i></i><span>--</span></span>
+    <select id="speed" class="hide-md" title="Simulation speed">
+      <option value="1">1× real time</option><option value="5">5×</option><option value="10" selected>10×</option>
+      <option value="30">30×</option><option value="60">60×</option><option value="0">Paused</option>
+    </select>
+    <button class="icon-btn" id="btn-lang" title="English / हिन्दी"><b>अ</b></button>
+    <button class="icon-btn" id="btn-notify" title="Browser alerts for severe warnings">
+      <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+    </button>
+    <button class="theme-switch" id="btn-theme" role="switch" aria-checked="true" aria-label="Toggle light / dark theme" title="Light / dark">
+      <span class="ts-track"><canvas class="ts-canvas"></canvas></span>
+      <span class="ts-glass" aria-hidden="true"></span>
+      <span class="ts-thumb" aria-hidden="true"></span>
+      <span class="ts-ico ts-sun" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></span>
+      <span class="ts-ico ts-moon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
+    </button>
+    <button class="icon-btn only-mobile" id="btn-right" aria-label="Alerts">
+      <svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+    </button>
+  </div>
+</header>
+
+<canvas class="fx-topbar" id="fx-topbar" aria-hidden="true"></canvas>
+<main class="layout">
+  <!-- LEFT: layers -->
+  <aside class="panel left" id="left">
+    <div class="panel-head"><h2 data-i18n="layers">Map layers</h2><button class="icon-btn only-mobile close" data-close="left">✕</button></div>
+    <div class="panel-body">
+      <div id="products"></div>
+
+      <h3 data-i18n="overlays">Overlays</h3>
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" id="ov-cells" checked><span></span><em data-i18n="ov_cells">Storm cells &amp; tracks</em></label>
+        <label class="switch"><input type="checkbox" id="ov-strikes" checked><span></span><em data-i18n="ov_strikes">Live lightning</em></label>
+        <label class="switch"><input type="checkbox" id="ov-ci" checked><span></span><em data-i18n="ov_ci">New-storm (CI) alerts</em></label>
+        <label class="switch"><input type="checkbox" id="ov-clocks" checked><span></span><em data-i18n="ov_clocks">Countdowns on map</em></label>
+        <label class="switch"><input type="checkbox" id="ov-motion"><span></span><em data-i18n="ov_motion">Storm motion vectors</em></label>
+        <label class="switch"><input type="checkbox" id="ov-radars"><span></span><em data-i18n="ov_radars">Radar coverage</em></label>
+      </div>
+
+      <h3 data-i18n="live_ext">Live external data <span class="tag">real-time</span></h3>
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" id="ov-rainviewer"><span></span><em>RainViewer global radar</em></label>
+        <label class="switch"><input type="checkbox" id="ov-gibs"><span></span><em>NASA GIBS IMERG rain</em></label>
+      </div>
+      <p class="fine" id="ext-note"></p>
+
+      <h3 data-i18n="opacity">Layer opacity</h3>
+      <input type="range" id="opacity" min="0.2" max="1" step="0.05" value="0.8" class="range">
+
+      <h3 data-i18n="skill">Live forecast skill</h3>
+      <div id="verif"></div>
+    </div>
+  </aside>
+
+  <!-- MAP -->
+  <section class="map-area">
+    <div id="map"></div>
+
+    <div class="kpis" id="kpis"></div>
+    <div id="banner" class="banner hidden"></div>
+
+    <div class="legend card" id="legend"></div>
+
+    <div class="timeline card">
+      <button id="play" class="play" title="Play 0–6 h (space)">
+        <svg class="i-play" viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg>
+      </button>
+      <div class="tl-main">
+        <div class="tl-top">
+          <b id="lead-text">Now</b>
+          <span id="valid-time" class="mono">--</span>
+        </div>
+        <input id="lead" type="range" min="0" max="36" value="0" step="1" class="range tl-range">
+        <div class="tl-ticks"><span>Now</span><span>1h</span><span>2h</span><span>3h</span><span>4h</span><span>5h</span><span>6h</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: tabs -->
+  <aside class="panel right" id="right">
+    <div class="panel-head tabs">
+      <button class="tab on" data-tab="countdown"><span data-i18n="tab_cd">Arrivals</span> <b id="n-threat" class="count">0</b></button>
+      <button class="tab" data-tab="alerts"><span data-i18n="tab_alerts">Alerts</span> <b id="n-alerts" class="count soft">0</b></button>
+      <button class="tab" data-tab="ai"><span>✨ Ask AI</span></button>
+      <button class="tab" data-tab="system"><span data-i18n="tab_sys">System</span></button>
+      <button class="icon-btn only-mobile close" data-close="right">✕</button>
+    </div>
+    <div class="panel-body">
+      <div class="tabpane on" id="tab-countdown">
+        <div class="seg" id="filter">
+          <button data-f="all" class="on" data-i18n="f_all">All</button>
+          <button data-f="city" data-i18n="f_city">Cities</button>
+          <button data-f="airport" data-i18n="f_air">Airports</button>
+          <button data-f="agri" data-i18n="f_agri">Farms</button>
+        </div>
+        <div id="countdowns"></div>
+      </div>
+      <div class="tabpane" id="tab-alerts"><div id="events"></div></div>
+      <div class="tabpane" id="tab-ai">
+        <div class="ai-head"><b>✨ BUMBLEBLE Assistant</b>
+          <span class="ai-head-r"><button type="button" class="mini-btn" id="kb-btn" title="Documents the assistant answers from">📚 Knowledge <b id="kb-count">0</b></button><span id="ai-mode" class="tag">…</span></span></div>
+        <div class="kb-panel hidden" id="kb-panel">
+          <div class="kb-top"><b>Knowledge base (RAG)</b><small>The assistant searches these documents and cites them.</small></div>
+          <div id="kb-list" class="kb-list"></div>
+          <label class="mini-btn kb-upload">＋ Add .md / .txt file<input type="file" id="kb-file" accept=".md,.txt,text/plain,text/markdown" multiple hidden></label>
+          <details class="kb-paste"><summary>…or paste text</summary>
+            <input id="kb-name" placeholder="Title, e.g. District SOP - Kolkata">
+            <textarea id="kb-text" rows="4" placeholder="Paste procedures, contacts, advisories…"></textarea>
+            <button type="button" class="mini-btn" id="kb-save">Save document</button>
+          </details>
+        </div>
+        <div id="ai-log" class="ai-log"></div>
+        <div class="ai-chips" id="ai-chips"></div>
+        <form id="ai-form" class="ai-form">
+          <textarea id="ai-input" rows="2" placeholder="Ask anything… e.g. “Show hail risk near Ranchi in 2 hours”"></textarea>
+          <button type="submit" class="ai-send" title="Send"><svg viewBox="0 0 24 24"><path d="m5 12 14-7-4 14-3-6-7-1Z"/></svg></button>
+        </form>
+      </div>
+      <div class="tabpane" id="tab-system">
+        <h3 data-i18n="feeds">Data feeds</h3>
+        <div id="feeds"></div>
+        <h3 data-i18n="pipeline">Pipeline</h3>
+        <div id="stats" class="kv"></div>
+        <h3 data-i18n="demo">Demo</h3>
+        <p class="fine" data-i18n="demo_hint">Click anywhere on the map to see its 6-hour hazard timeline or to inject a storm. Use “fail” on a feed to show graceful degradation.</p>
+      </div>
+    </div>
+  </aside>
+</main>
+<div class="scrim" id="scrim"></div>
+<div class="toast-wrap" id="toasts"></div>
+
+<div class="onboard hidden" id="onboard">
+  <canvas class="fx-onboard" id="fx-onboard" aria-hidden="true"></canvas>
+  <div class="onboard-card">
+    <div class="logo big"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></div>
+    <h2>What do you want to watch?</h2>
+    <p>Pick a starting point — you can ask the assistant anything later.</p>
+    <div class="onboard-grid">
+      <button data-q="which cities are at risk?">🚨<b>Places at risk</b><small>Countdowns to storm arrival</small></button>
+      <button data-q="show hail risk">🧊<b>Hail risk</b><small>For farmers &amp; crops</small></button>
+      <button data-q="show downburst gusts">✈️<b>Gusts &amp; wind shear</b><small>For airports &amp; aviation</small></button>
+      <button data-q="show lightning">⚡<b>Lightning</b><small>Strike density, live strikes</small></button>
+      <button data-q="show cloudburst risk">🌧️<b>Cloudburst</b><small>≥100 mm in an hour</small></button>
+      <button data-q="show radar and turn on live radar">📡<b>Live radar</b><small>Real rain right now</small></button>
+    </div>
+    <button class="link-btn" id="onboard-skip">Skip — just show me the map</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/static/lightning.js"></script>
+<script src="/static/theme-switch.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

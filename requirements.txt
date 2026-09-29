@@ -1,0 +1,13 @@
+numpy>=2.0
+scipy>=1.13
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pillow>=10
+certifi
+google-genai>=1.0
+# optional: real AI for the assistant (set ANTHROPIC_API_KEY on the server); demo mode works without it
+# anthropic>=1.0
+# optional: needed only for live ODIM_H5 radar / INSAT HDF5 ingestion
+# h5py>=3.10
+# dev
+pytest>=8

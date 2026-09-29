@@ -1,0 +1,15 @@
+# Render.com blueprint: New + > Blueprint > point at this repo.
+# The free plan (512 MB RAM) needs the coarser 3 km grid; use Starter or above for 2 km.
+services:
+  - type: web
+    name: storm-nowcast
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/meta
+    envVars:
+      - key: NOWCAST_MODE
+        value: simulated
+      - key: NOWCAST_SPEED
+        value: "10"
+      - key: NOWCAST_RES_DEG
+        value: "0.03"
