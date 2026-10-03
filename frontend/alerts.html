@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alerts — BUMBLEBLE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/pages.css">
+<style>
+  .head-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .notify-btn[aria-pressed="true"] { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .notify-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .notify-btn[aria-pressed="true"] .dot { background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent); }
+
+  .msg { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border-radius: 12px; margin: 0 0 16px;
+    background: var(--brand-soft); border: 1px solid color-mix(in srgb, var(--brand) 35%, transparent); color: var(--text); font-size: 14px; }
+  .msg.bad { background: color-mix(in srgb, var(--bad) 12%, transparent); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+  .msg button { margin-left: auto; background: none; border: 0; color: var(--text-2); font-size: 16px; line-height: 1; min-width: 36px; min-height: 36px; margin-top: -8px; margin-right: -8px; border-radius: 8px; cursor: pointer; }
+  .msg button:hover { background: var(--surface-2); color: var(--text); }
+
+  /* summary tiles */
+  .sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .sum .card { display: flex; gap: 14px; align-items: center; padding: 16px; }
+  .sum .card { --k: var(--brand); position: relative; overflow: hidden; }
+  .sum .card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: linear-gradient(180deg, var(--k), color-mix(in srgb, var(--k) 20%, transparent)); }
+  .sum .t-warn { --k: var(--brand); } .sum .t-storm { --k: #8b5cf6; } .sum .t-last { --k: #0ea5e9; }
+  [data-theme="light"] .sum .t-storm { --k: #7c3aed; } [data-theme="light"] .sum .t-last { --k: #0284c7; }
+  .sum .ic { font-size: 22px; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; flex: none;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--k) 22%, transparent), color-mix(in srgb, var(--k) 8%, transparent));
+    border: 1px solid color-mix(in srgb, var(--k) 35%, transparent); box-shadow: 0 6px 16px color-mix(in srgb, var(--k) 18%, transparent); }
+  .sum .card.hot { --k: var(--l3); border-color: color-mix(in srgb, var(--l3) 55%, var(--line)); }
+
+  /* layout: feed + side legend */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
+  .side { position: sticky; top: 80px; display: grid; gap: 14px; }
+  .side h3 { margin: 0 0 10px; font-size: 15px; }
+  .legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .legend li { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--text-2); }
+  .legend .sw { width: 6px; align-self: stretch; min-height: 32px; border-radius: 4px; flex: none; }
+  .legend b { color: var(--text); display: block; font-size: 14px; }
+
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .chip-btn .n { opacity: .75; font-weight: 700; margin-left: 4px; }
+  #chips .chip-btn { min-height: 40px; cursor: pointer; }
+  .ev .foot .btn.sm { height: 38px; }
+
+  /* feed */
+  .day { font-size: 13px; font-weight: 800; color: var(--text); margin: 26px 0 4px; display: flex; align-items: center; gap: 10px; }
+  .day::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 18%, transparent); }
+  .day::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 45%, var(--line)), var(--line) 40%, transparent); }
+  .hour { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin: 14px 0 8px;
+    padding: 4px 11px; border-radius: 999px; color: color-mix(in srgb, var(--brand) 70%, var(--text));
+    background: color-mix(in srgb, var(--brand) 12%, transparent); border: 1px solid color-mix(in srgb, var(--brand) 28%, transparent); }
+  .hour::before { content: "🕒"; font-size: 11px; }
+  .feed { display: grid; gap: 10px; }
+  .ev { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 16px 18px 16px 16px;
+    background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--l0); border-radius: 14px;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .ev:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+  .ev.s1 { border-left-color: var(--l1); } .ev.s2 { border-left-color: var(--l2); }
+  .ev.s3 { border-left-color: var(--l3); } .ev.s4 { border-left-color: var(--l4); }
+  .ev.s3, .ev.s4 { background: linear-gradient(90deg, color-mix(in srgb, var(--l3) 7%, var(--surface)), var(--surface) 60%); }
+  .ev.s4 { background: linear-gradient(90deg, color-mix(in srgb, var(--l4) 9%, var(--surface)), var(--surface) 60%); }
+  .ev { --k: #64748b; }
+  .ev.k-warning { --k: #ef4444; } .ev.k-ci { --k: #14b8a6; } .ev.k-ljump { --k: #eab308; } .ev.k-cloudburst { --k: #3b82f6; }
+  .ev.k-clear { --k: #22c55e; } .ev.k-feed { --k: #64748b; } .ev.k-demo { --k: #8b5cf6; } .ev.k-info { --k: #0ea5e9; }
+  .ev .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 21px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--k) 20%, var(--surface-2)), color-mix(in srgb, var(--k) 7%, var(--surface-2)));
+    border: 1px solid color-mix(in srgb, var(--k) 32%, transparent); }
+  .ev:hover { border-top-color: color-mix(in srgb, var(--k) 40%, var(--line)); border-right-color: color-mix(in srgb, var(--k) 40%, var(--line)); border-bottom-color: color-mix(in srgb, var(--k) 40%, var(--line)); box-shadow: 0 10px 26px color-mix(in srgb, var(--k) 14%, transparent); }
+  .ev .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ev .type { font-weight: 800; font-size: 15.5px; letter-spacing: -.01em; }
+  .ev .new { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; padding: 2px 8px; border-radius: 6px; color: #fff;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 78%, #000), color-mix(in srgb, var(--brand-2) 78%, #000));
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--brand) 35%, transparent); }
+  .ev .when { margin-left: auto; color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+  .ev .tx { margin: 6px 0 0; color: var(--text); overflow-wrap: anywhere; }
+  .ev .mean { margin: 10px 0 0; color: var(--text-2); font-size: 13.5px; display: flex; gap: 8px; padding: 8px 10px; border-radius: 10px;
+    background: color-mix(in srgb, var(--k) 7%, transparent); border: 1px solid color-mix(in srgb, var(--k) 14%, transparent); }
+  .ev .mean::before { content: "💡"; flex: none; }
+  .ev .foot { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .ev.fresh { animation: pop .6s ease both; box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 45%, transparent); }
+  .ev.enter { animation: rise .35s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { 0% { opacity: 0; transform: translateY(-10px) scale(.98); } 100% { opacity: 1; transform: none; } }
+  .more { display: flex; justify-content: center; margin-top: 18px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ev, .ev.fresh, .ev.enter { animation: none !important; transition: none !important; }
+    .ev:hover { transform: none; }
+    .sum .card:hover { transform: none; }
+  }
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .side { position: static; order: 2; }
+  }
+  @media (max-width: 600px) {
+    .sum { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .sum .card { padding: 12px 14px; }
+    .ev { grid-template-columns: 36px minmax(0, 1fr); gap: 12px; padding: 14px; }
+    .ev .ic { width: 36px; height: 36px; font-size: 18px; border-radius: 10px; }
+    .ev .when { margin-left: 0; width: 100%; }
+    .head-actions { width: 100%; justify-content: space-between; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1>🔔 Alerts</h1>
+      <p>Every storm warning, new storm and all-clear in one place, newest first. Tap “View on map” to see where it is.</p>
+    </div>
+    <div class="head-actions">
+      <span class="updated" id="updated">Waiting for data…</span>
+      <button class="btn notify-btn" id="notify" aria-pressed="false"><span class="dot" aria-hidden="true"></span><span id="notify-txt">Notify me</span></button>
+    </div>
+  </div>
+
+  <div id="msg" class="msg hidden" role="status" aria-live="polite"></div>
+
+  <div class="sum" aria-label="Alert summary">
+    <div class="card t-warn" id="sum-warn"><div class="ic" aria-hidden="true">⚠️</div><div class="stat"><small>Serious warnings</small><b id="n-warn">–</b></div></div>
+    <div class="card t-storm"><div class="ic" aria-hidden="true">⛈️</div><div class="stat"><small>Storm activity</small><b id="n-storm">–</b></div></div>
+    <div class="card t-last"><div class="ic" aria-hidden="true">🕒</div><div class="stat"><small>Latest alert</small><b id="n-last" style="font-size:20px">–</b></div></div>
+  </div>
+
+  <div class="layout">
+    <section aria-label="Alert feed">
+      <div class="toolbar">
+        <div class="chips" role="group" aria-label="Filter alerts" id="chips">
+          <button class="chip-btn on" data-f="all" aria-pressed="true">All<span class="n" data-n="all"></span></button>
+          <button class="chip-btn" data-f="warn" aria-pressed="false">Warnings only<span class="n" data-n="warn"></span></button>
+          <button class="chip-btn" data-f="storm" aria-pressed="false">Storm activity<span class="n" data-n="storm"></span></button>
+          <button class="chip-btn" data-f="sys" aria-pressed="false">System<span class="n" data-n="sys"></span></button>
+        </div>
+      </div>
+      <div id="feed" aria-live="polite"></div>
+      <div class="more hidden" id="more-wrap"><button class="btn" id="more">Show older alerts</button></div>
+    </section>
+
+    <aside class="side">
+      <div class="card">
+        <h3>What the colours mean</h3>
+        <ul class="legend">
+          <li><span class="sw" style="background:var(--l4)"></span><div><b>Purple — Extreme</b>Dangerous storm. Take shelter now.</div></li>
+          <li><span class="sw" style="background:var(--l3)"></span><div><b>Red — High</b>Severe storm likely. Go indoors before it arrives.</div></li>
+          <li><span class="sw" style="background:var(--l2)"></span><div><b>Orange — Moderate</b>Strong storm activity. Plan ahead.</div></li>
+          <li><span class="sw" style="background:var(--l1)"></span><div><b>Yellow — Low</b>Something to watch. Stay alert.</div></li>
+          <li><span class="sw" style="background:var(--l0)"></span><div><b>Grey — Information</b>Updates, all-clears and system news.</div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Get alerts on this device</h3>
+        <p class="fine" style="margin:0">Turn on <b>Notify me</b> and keep this tab open. You’ll get a pop-up for every red or purple warning, even if you are on another tab.</p>
+      </div>
+    </aside>
+  </div>
+
+  <p class="disclaimer">Guidance only — always follow official IMD warnings.</p>
+</main>
+
+<script src="static/config.js"></script>
+<script src="static/pages.js"></script>
+<script>
+(() => {
+  "use strict";
+  BB.nav("alerts");
+  const $ = (id) => document.getElementById(id);
+
+  const KIND = {
+    warning:    { ico: "⚠️", name: "Severe weather warning", mean: "A strong storm is expected at this place. Check the time and follow the safety advice." },
+    ci:         { ico: "🌱", name: "New storm forming", mean: "Clouds are building quickly here. A thunderstorm may develop in the next 30–60 minutes." },
+    ljump:      { ico: "⚡", name: "Lightning surge", mean: "Lightning suddenly increased in this storm. It often turns severe within 10–30 minutes." },
+    cloudburst: { ico: "🌧️", name: "Cloudburst risk", mean: "Very heavy rain is possible in a short time. Watch for flash floods and avoid streams and low ground." },
+    clear:      { ico: "✅", name: "All clear", mean: "The storm has moved away from this place. Normal activity can resume." },
+    feed:       { ico: "📡", name: "Data feed status", mean: "A weather data source changed status. Forecasts keep running with the remaining sources." },
+    demo:       { ico: "🧪", name: "Demo action", mean: "A storm was added for demonstration. It is not a real weather event." },
+    info:       { ico: "ℹ️", name: "Information", mean: "General update about the forecasting system." },
+  };
+  const FILTERS = {
+    all: () => true,
+    warn: (e) => e.severity >= 3,
+    storm: (e) => ["ci", "ljump", "cloudburst", "warning"].includes(e.kind),
+    sys: (e) => ["feed", "demo", "info", "clear"].includes(e.kind),
+  };
+  const PAGE_SIZE = 60;
+
+  let events = [], filter = BB.store.get("alerts-filter") || "all", limit = PAGE_SIZE;
+  if (!FILTERS[filter]) filter = "all";
+  let first = true;
+  const seen = new Set(), rendered = new Set(), fresh = new Map(); // fresh: id -> real ms when it arrived
+
+  // ---------- notify toggle ----------
+  let notify = BB.store.get("notify") === "1";
+  // permission revoked in browser settings since last visit -> show the toggle as off
+  if (notify && (!("Notification" in window) || Notification.permission !== "granted")) { notify = false; BB.store.set("notify", "0"); }
+  const nb = $("notify");
+  const paintNotify = () => { nb.setAttribute("aria-pressed", String(notify)); $("notify-txt").textContent = notify ? "Notifications on" : "Notify me"; };
+  paintNotify();
+  let msgTimer = 0;
+  function say(html, bad) {
+    const m = $("msg");
+    m.className = "msg" + (bad ? " bad" : "");
+    m.innerHTML = `<div>${html}</div><button aria-label="Dismiss">✕</button>`;
+    m.querySelector("button").onclick = () => m.classList.add("hidden");
+    clearTimeout(msgTimer); msgTimer = setTimeout(() => m.classList.add("hidden"), 7000);
+  }
+  nb.onclick = async () => {
+    if (!notify) {
+      if (!("Notification" in window)) { say("This browser can’t show notifications. Keep this page open to see new alerts here.", true); return; }
+      let p = Notification.permission;
+      if (p !== "granted") { try { p = await Notification.requestPermission(); } catch (_) {} }
+      if (p !== "granted") { say("Notifications are blocked. Allow them in your browser’s site settings, then try again.", true); return; }
+      notify = true;
+      say("<b>Notifications on.</b> You’ll get a pop-up for every red or purple warning while this tab is open.");
+    } else {
+      notify = false;
+      say("<b>Notifications off.</b> New alerts will still appear on this page.");
+    }
+    BB.store.set("notify", notify ? "1" : "0"); paintNotify();
+  };
+
+  // ---------- filter chips ----------
+  const chips = $("chips");
+  const paintChips = () => chips.querySelectorAll(".chip-btn").forEach((b) => {
+    const on = b.dataset.f === filter; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on));
+  });
+  chips.onclick = (e) => {
+    const b = e.target.closest(".chip-btn"); if (!b) return;
+    filter = b.dataset.f; limit = PAGE_SIZE; BB.store.set("alerts-filter", filter); paintChips(); render();
+  };
+  paintChips();
+  $("more").onclick = () => { limit += PAGE_SIZE; render(); };
+
+  // ---------- helpers ----------
+  const dayKey = (t) => new Date((t + 19800) * 1000).toISOString().slice(0, 10); // IST date
+  function dayLabel(t) {
+    const k = dayKey(t), n = BB.now() || t;
+    if (k === dayKey(n)) return "Today";
+    if (k === dayKey(n - 86400)) return "Yesterday";
+    return new Date((t + 19800) * 1000).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" });
+  }
+  function hourLabel(t) {
+    const h = Math.floor(((t + 19800) % 86400) / 3600), p = (x) => String(x % 24).padStart(2, "0") + ":00";
+    return `${p(h)} – ${p(h + 1)} IST`;
+  }
+  function ago(t) {
+    const n = BB.now(); if (!n) return "";
+    const s = Math.max(0, n - t);
+    if (s < 60) return "just now";
+    const m = Math.round(s / 60);
+    if (m < 60) return `${m} min ago`;
+    const h = Math.floor(m / 60), r = m % 60;
+    if (h < 24) return `${h} h${r ? " " + r + " min" : ""} ago`;
+    return `${Math.floor(h / 24)} day${h >= 48 ? "s" : ""} ago`;
+  }
+  const mapLink = (e) => `app.html?lat=${(+e.lat).toFixed(3)}&lon=${(+e.lon).toFixed(3)}&z=9&layer=${e.kind === "cloudburst" ? "cloudburst" : e.kind === "ljump" ? "lightning" : "level"}&lead=0`;
+  const sevLabel = (s) => s >= 1 ? `<span class="lvl l${s}">${BB.LEVELS[s]}</span>` : "";
+
+  function card(e) {
+    const k = KIND[e.kind] || { ico: "•", name: e.kind, mean: "" };
+    const sev = Math.max(0, Math.min(4, e.severity | 0));
+    const isFresh = fresh.has(e.id), anim = isFresh && !rendered.has(e.id) ? " fresh" : !rendered.has(e.id) && !first ? " enter" : "";
+    const hasLoc = e.lat != null && e.lon != null && isFinite(e.lat) && isFinite(e.lon);
+    return `<article class="ev s${sev} k-${String(e.kind || "info").replace(/[^a-z0-9_-]/gi, "")}${anim}" data-id="${BB.esc(e.id)}">
+      <div class="ic" aria-hidden="true">${k.ico}</div>
+      <div>
+        <div class="top">
+          <span class="type">${BB.esc(k.name)}</span>${sevLabel(sev)}${isFresh ? '<span class="new">NEW</span>' : ""}
+          <span class="when"><span class="mono">${BB.fmtIST(e.time)}</span> IST · <span data-ago="${+e.time || 0}">${ago(e.time)}</span></span>
+        </div>
+        <p class="tx">${BB.esc(e.text)}</p>
+        ${k.mean ? `<p class="mean">${BB.esc(k.mean)}</p>` : ""}
+        ${hasLoc || sev >= 3 ? `<div class="foot">
+          ${hasLoc ? `<a class="btn sm" href="${mapLink(e)}">🗺️ View on map</a>` : ""}
+          ${sev >= 3 ? `<span class="fine">${BB.esc(BB.ADVICE[sev])}</span>` : ""}
+        </div>` : ""}
+      </div>
+    </article>`;
+  }
+
+  function render() {
+    const counts = {}; for (const f in FILTERS) counts[f] = events.filter(FILTERS[f]).length;
+    chips.querySelectorAll("[data-n]").forEach((s) => { s.textContent = counts[s.dataset.n] ? `(${counts[s.dataset.n]})` : ""; });
+    $("n-warn").textContent = counts.warn; $("sum-warn").classList.toggle("hot", counts.warn > 0);
+    $("n-storm").textContent = counts.storm;
+    $("n-last").innerHTML = events.length ? `<span class="mono">${BB.fmtIST(events[0].time)}</span> <span class="fine">IST</span>` : "–";
+
+    const list = events.filter(FILTERS[filter]);
+    const shown = list.slice(0, limit);
+    $("more-wrap").classList.toggle("hidden", list.length <= limit);
+    if (!shown.length) {
+      const why = events.length
+        ? { warn: ["😌", "No serious warnings", "Nothing red or purple right now. That’s good news."],
+            storm: ["🌤️", "No storm activity", "No new storms, lightning surges or cloudburst risks so far."],
+            sys: ["🛠️", "No system messages", "Data feeds and the forecast system are running quietly."] }[filter] || ["🌤️", "Nothing here", ""]
+        : ["🌤️", "All quiet for now", "No alerts yet. New warnings will appear here automatically — you don’t need to refresh."];
+      $("feed").innerHTML = `<div class="card empty"><div class="big">${why[0]}</div><b style="font-size:17px;color:var(--text)">${why[1]}</b><p style="margin:6px 0 0">${why[2]}</p>
+        ${filter !== "all" && events.length ? `<button class="btn sm" style="margin-top:14px" id="show-all">Show all alerts</button>` : ""}</div>`;
+      const sa = $("show-all"); if (sa) sa.onclick = () => chips.querySelector('[data-f="all"]').click();
+      return;
+    }
+    let html = "", lastDay = "", lastHour = "", open = false;
+    for (const e of shown) {
+      const d = dayKey(e.time), h = d + Math.floor(((e.time + 19800) % 86400) / 3600);
+      if (d !== lastDay) { if (open) { html += "</div>"; open = false; } html += `<h2 class="day">${BB.esc(dayLabel(e.time))}</h2>`; lastDay = d; lastHour = ""; }
+      if (h !== lastHour) { if (open) html += "</div>"; html += `<h3 class="hour">${hourLabel(e.time)}</h3><div class="feed">`; open = true; lastHour = h; }
+      html += card(e);
+    }
+    if (open) html += "</div>";
+    $("feed").innerHTML = html;
+    shown.forEach((e) => rendered.add(e.id));
+  }
+
+  function tickAgo() {
+    document.querySelectorAll("[data-ago]").forEach((s) => { s.textContent = ago(+s.dataset.ago); });
+    // retire the NEW tag after 3 minutes of real time
+    const cut = performance.now() - 180000; let changed = false;
+    fresh.forEach((at, id) => { if (at < cut) { fresh.delete(id); changed = true; } });
+    if (changed) render();
+  }
+  setInterval(tickAgo, 15000);
+
+  let maxId = -Infinity;
+  function onCycle(sum) {
+    const list = (sum.events || []).slice().sort((a, b) => b.time - a.time || b.id - a.id);
+    // server restarted -> event ids start over; forget old ids so new alerts are not hidden as "seen"
+    const top = list.reduce((m, e) => Math.max(m, +e.id || 0), -Infinity);
+    if (list.length && top < maxId) { seen.clear(); rendered.clear(); fresh.clear(); first = true; }
+    if (list.length) maxId = top;
+    const arrived = list.filter((e) => !seen.has(e.id));
+    list.forEach((e) => seen.add(e.id));
+    if (!first && arrived.length) {
+      const t = performance.now(); arrived.forEach((e) => fresh.set(e.id, t));
+      const serious = arrived.filter((e) => e.severity >= 3);
+      if (serious.length) {
+        say(`<b>${serious.length} new serious warning${serious.length > 1 ? "s" : ""}.</b> ${BB.esc(serious[0].text)}`, true);
+        if (notify && "Notification" in window && Notification.permission === "granted") {
+          serious.forEach((e) => { try { new Notification("BUMBLEBLE storm alert", { body: e.text, tag: "bb-ev-" + e.id }); } catch (_) {} });
+        }
+      }
+    }
+    events = list;
+    $("updated").textContent = `Updated ${BB.fmtIST(sum.time)} IST`;
+    render();
+    first = false;
+  }
+
+  BB.live({
+    onCycle,
+    onPending: () => { $("updated").textContent = "Forecast starting up…"; render(); },
+  }).then((meta) => { if (!meta) $("feed").innerHTML = `<div class="card empty"><div class="big">🔌</div><b style="font-size:17px;color:var(--text)">Can’t reach the server</b><p style="margin:6px 0 0">We’ll keep trying. Check your internet connection.</p></div>`; });
+})();
+</script>
+</body>
+</html>

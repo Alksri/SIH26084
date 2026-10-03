@@ -10,3 +10,28 @@
   from = "/dashboard"
   to = "/app.html"
   status = 200
+
+[[redirects]]
+  from = "/arrivals"
+  to = "/arrivals.html"
+  status = 200
+
+[[redirects]]
+  from = "/alerts"
+  to = "/alerts.html"
+  status = 200
+
+[[redirects]]
+  from = "/hazards"
+  to = "/hazards.html"
+  status = 200
+
+[[redirects]]
+  from = "/assistant"
+  to = "/assistant.html"
+  status = 200
+
+[[redirects]]
+  from = "/system"
+  to = "/system.html"
+  status = 200

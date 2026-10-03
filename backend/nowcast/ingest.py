@@ -28,6 +28,7 @@ class FeedStats:
     kind: str
     label: str
     cadence_s: float
+    expected_delay_s: float = 0.0  # publication delay that is normal for this feed (e.g. NASA GIBS ~1 h)
     count: int = 0
     rejected: int = 0
     last_obs_time: float | None = None
@@ -39,9 +40,9 @@ class FeedStats:
         if self.last_arrival is None:
             return "WAITING"
         age = now - (self.last_obs_time or 0)
-        if age > 3.0 * self.cadence_s + 600:
+        if age > 3.0 * self.cadence_s + 600 + self.expected_delay_s:
             return "DOWN"
-        if age > 1.6 * self.cadence_s + max(self.latency(), 0) + 60:
+        if age > 1.6 * self.cadence_s + max(self.latency(), self.expected_delay_s, 0) + 60:
             return "STALE"
         return "OK"
 
@@ -77,7 +78,8 @@ class IngestEngine:
         self.listeners: list[Callable[[Observation], None]] = []
 
     def register(self, source) -> None:
-        self.stats[source.id] = FeedStats(source.id, source.kind, source.label, source.cadence_s)
+        self.stats[source.id] = FeedStats(source.id, source.kind, source.label, source.cadence_s,
+                                          expected_delay_s=getattr(source, "expected_delay_s", 0.0))
 
     # ------------------------------------------------------------------ intake
     async def emit(self, obs: Observation) -> None:

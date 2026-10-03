@@ -106,12 +106,13 @@ class NowcastEngine:
         from .sources.live import LightningPushSource, build_live_sources
 
         if self.realtime:
+            from .sources.himawari import HimawariSource
             from .sources.rainviewer import NotConnectedSource, RainViewerSource
 
             return [
                 RainViewerSource(self.grid),
-                NotConnectedSource("INSAT-3DR", "satellite", "INSAT-3DR imager - needs MOSDAC access", 900.0),
-                NotConnectedSource("LLN", "lightning", "Lightning network - needs IMD/IITM feed", 60.0),
+                HimawariSource(self.grid),
+                NotConnectedSource("LLN", "lightning", "Lightning network - no free feed; lightning is estimated from radar + satellite", 60.0),
                 LightningPushSource(),
             ]
         return build_live_sources(self.settings.drop_dir, self.grid)

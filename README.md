@@ -9,6 +9,21 @@ A real-time, multi-source data-fusion nowcasting system for severe convective st
  (file drop / HTTP push)      health, buffers       parallax, gap-fill    corr.     CI            hazards          events          + PNG tiles)
 ```
 
+## Quick start (no technical knowledge needed)
+
+1. On Windows, open PowerShell in this folder and run `./run.ps1`. The first run installs everything, which takes a few minutes.
+2. Open **http://localhost:8000** in your browser. That's the home page. Click **Open live dashboard**, or go straight to **http://localhost:8000/app**.
+3. In the dashboard:
+   - **Find a place:** type a city, airport or district in the search box, or click anywhere on the map.
+   - **See the future:** press ▶ on the timeline at the bottom to watch storms move over the next 6 hours.
+   - **Check arrivals:** the **Arrivals** tab on the right counts down to each storm's arrival. It shows how bad the storm will be and what to do.
+   - **Ask a question:** the **Ask AI** tab answers questions like "Which cities are at risk?"
+   - **Get help:** press **?** at any time to see the welcome guide again. The **अ** button switches to Hindi.
+
+Danger levels: **Yellow** = stay alert · **Orange** = plan to be indoors · **Red** = go indoors before it arrives · **Purple** = take shelter now.
+
+> This is a prototype. It gives guidance only, so always follow official IMD warnings.
+
 ## Run
 
 ```powershell
@@ -61,6 +76,22 @@ Tests: `python -m pytest tests`. Offline benchmark or scenario replay: `python -
 
 The HDF5 readers need `pip install h5py`. They follow the published formats but **have not been validated against real IMD/MOSDAC files**. Check dataset names and scale factors against a sample before operational use.
 
+## Hosting anywhere (Netlify, Vercel, GitHub Pages)
+
+The pages in `frontend/` are plain files and work on any static host. They pick their data source automatically:
+
+| Setup | What you get |
+|---|---|
+| **Pages + engine** — put your engine's https address in `frontend/static/config.js` (`window.BUMBLEBLE_API = "https://…hf.space"`) | Everything: 2 km radar + satellite nowcast, all map layers, AI assistant |
+| **Pages only** — leave `config.js` empty, or the engine is down | **Browser mode**: storm risk per place from free Open-Meteo 15-minute forecasts, live weather, live RainViewer radar loop and wind on the map, rule-based assistant. Detailed 2 km layers, downloads and the knowledge base need the engine. |
+
+- **Netlify:** connect the repo; `netlify.toml` publishes `frontend/`.
+- **Vercel:** import the repo; `vercel.json` serves `frontend/`.
+- **GitHub Pages:** Settings → Pages → Source: *GitHub Actions*; `.github/workflows/pages.yml` publishes `frontend/` on every push to `main`.
+- **Engine:** run the `Dockerfile` on Hugging Face Spaces or Render (below). The server allows cross-origin requests, so pages on any of the hosts above can use it.
+
+All links are relative, so the site also works under a GitHub Pages sub-path (`/your-repo/`). The 📍 location button needs https, which all of these hosts provide.
+
 ## Cloud deployment (free)
 
 The app is a single container (`Dockerfile`), so it runs on any container host. WebSockets must be supported.
@@ -75,6 +106,17 @@ The app is a single container (`Dockerfile`), so it runs on any container host. 
 `NOWCAST_RES_DEG` sets the grid spacing: `0.02` ≈ 2 km, needs about 1 GB RAM; `0.03` ≈ 3 km, needs about 400 MB.
 
 ## Data sources & APIs
+
+**Real-time mode (`NOWCAST_MODE=realtime`, the default) runs entirely on free, keyless cloud APIs, so it works on any host with no accounts:**
+
+| Feed | API | What it gives | Delay |
+|---|---|---|---|
+| Radar | RainViewer `weather-maps.json` | Rain/storm reflectivity, every 10 min | ~10 min |
+| Satellite | NASA GIBS WMS, `Himawari_AHI_Band13_Clean_Infrared` | Infrared cloud-top temperature (decoded from GIBS's published colour map), parallax-corrected for Himawari-9 at 140.7°E | ~40–90 min |
+| Weather | Open-Meteo `/v1/forecast` | Current temperature, humidity, wind, gusts, rain, conditions, CAPE, and the next hours. Served by `GET /api/weather?lat=&lon=` (anywhere on Earth) and `GET /api/weather/places`, cached 10 min | ~15 min |
+| Lightning | none free | Estimated from radar + satellite. A real network can push strikes to `POST /api/ingest/lightning` | — |
+
+The map's wind-flow and rain-loop animations use Open-Meteo and RainViewer directly from the browser.
 
 **Already built into the dashboard (free, no API key):**
 - **Open-Meteo** — real-time instability (CAPE, lifted index, gusts, rain chance) for any point you click.

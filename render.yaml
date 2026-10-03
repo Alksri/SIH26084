@@ -8,7 +8,7 @@ services:
     healthCheckPath: /api/meta
     envVars:
       - key: NOWCAST_MODE
-        value: simulated
+        value: realtime
       - key: NOWCAST_SPEED
         value: "10"
       - key: NOWCAST_RES_DEG

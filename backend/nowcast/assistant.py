@@ -126,6 +126,12 @@ class DemoProvider(AssistantProvider):
                 "“switch to satellite map”, “dark mode”, “show lightning”, “summary”, "
                 "“turn on live radar”.")}
 
+        # questions about the user's own (shared) location
+        loc = context.get("user_location")
+        if loc and re.search(r"(me|my|here|i)", m):
+            return {"provider": self.name, "reply": self._my_location(loc),
+                    "actions": [{"type": "fly_to", "place": loc.get("name") or "your location", "lat": loc["lat"], "lon": loc["lon"], "zoom": 10}]}
+
         # theme / basemap
         if re.search(r"dark (mode|theme)", m):
             actions.append({"type": "set_theme", "theme": "dark"}); notes.append("switched to dark mode")
@@ -198,6 +204,28 @@ class DemoProvider(AssistantProvider):
             reply = "I didn't catch that. Type “help” for examples."
         return {"provider": self.name, "reply": reply, "actions": actions, "used_kb": used_kb}
 
+    @staticmethod
+    def _my_location(loc: dict) -> str:
+        where = loc.get("name") or f"{loc['lat']:.3f}, {loc['lon']:.3f}"
+        parts = [f"**Your location: {where}.**"]
+        f = loc.get("storm_forecast")
+        if isinstance(f, dict):
+            lv, mins = f["max_level_next_6h"], f["minutes_until_moderate_or_worse"]
+            if mins is None:
+                parts.append(f"No dangerous storm is expected here in the next 6 hours (highest level: {LEVEL_NAMES[lv]}).")
+            else:
+                parts.append(f"Storm danger reaches **{LEVEL_NAMES[lv]}** {'now' if mins == 0 else f'in about {mins} min'}"
+                             f" — hail chance up to {round(f['max_hail_prob'] * 100)}%, gusts up to {f['max_gust_kmh']} km/h. "
+                             "Plan to be indoors before then.")
+        elif f:
+            parts.append("Storm forecasts only cover East & North-East India, so there is no storm nowcast for your spot.")
+        w = loc.get("weather_now")
+        if w:
+            parts.append(f"Weather now: {w.get('text', '').lower()}, {round(w['temp_c'])}°C (feels {round(w['feels_c'])}°C), "
+                         f"humidity {w['humidity']}%, wind {round(w['wind_kmh'])} km/h.")
+        parts.append("Always follow official IMD warnings.")
+        return " ".join(parts)
+
     def _answer(self, m, place, ctx, is_question) -> str:
         if ctx.get("status") == "no analysis yet":
             return "The first analysis is still running — try again in a few seconds."
@@ -246,7 +274,10 @@ SYSTEM_PROMPT = (
     "managers, pilots and farmers; answer in the language the user writes in (English or Hindi). "
     "(5) When the user wants to see something, add UI actions: set_layer, set_lead (minutes, multiple of 10, "
     "0-360), fly_to (lat/lon of a place from <live_nowcast>), set_basemap, set_theme, toggle_overlay. "
-    "Return actions only when they help. Remind users that official IMD warnings take precedence when giving safety advice."
+    "Return actions only when they help. Remind users that official IMD warnings take precedence when giving safety advice. "
+    "(6) If <live_nowcast> contains user_location, the user shared their own position: when they say 'me', 'here' or "
+    "'my location', answer from user_location.storm_forecast and user_location.weather_now, name the place, and you may "
+    "fly_to its lat/lon."
 )
 
 

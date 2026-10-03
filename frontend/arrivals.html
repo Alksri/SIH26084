@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrivals — BUMBLEBLE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/pages.css">
+<style>
+  /* summary row */
+  .sum-row { margin-bottom: 18px; }
+  .sum-row .stat { display: flex; align-items: center; gap: 14px; }
+  /* each summary stat gets its own tinted icon chip (decorative hues, deliberately not the danger-level tokens) */
+  .sum-row .stat { --tone: var(--brand); position: relative; overflow: hidden; }
+  .sum-row .stat::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: linear-gradient(180deg, var(--tone), transparent); opacity: .8; }
+  .sum-row .t-places { --tone: #fb7185; } .sum-row .t-soon { --tone: #fbbf24; } .sum-row .t-worst { --tone: #a78bfa; }
+  [data-theme="light"] .sum-row .t-places { --tone: #e11d48; } [data-theme="light"] .sum-row .t-soon { --tone: #b45309; } [data-theme="light"] .sum-row .t-worst { --tone: #6d28d9; }
+  .sum-ico { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; flex: none; color: var(--tone);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--tone) 22%, transparent), color-mix(in srgb, var(--tone) 8%, transparent));
+    border: 1px solid color-mix(in srgb, var(--tone) 32%, transparent); box-shadow: 0 6px 18px color-mix(in srgb, var(--tone) 16%, transparent); }
+  .sum-ico svg.i { width: 22px; height: 22px; }
+  .sum-row .stat small { color: color-mix(in srgb, var(--tone) 55%, var(--muted)); }
+  [data-theme="light"] .sum-row .stat small { color: color-mix(in srgb, var(--tone) 70%, var(--text-2)); }
+  .sum-row .stat:hover { border-color: color-mix(in srgb, var(--tone) 45%, var(--line)); box-shadow: 0 10px 30px color-mix(in srgb, var(--tone) 14%, transparent); }
+  .stat .sub { display: block; color: var(--text-2); font-size: 12.5px; margin-top: 1px; }
+  .stat b.mono { font-size: 24px; }
+
+  /* controls */
+  .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 8px; }
+  .search { position: relative; flex: 1 1 260px; min-width: 0; }
+  .search input { width: 100%; height: 44px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+    padding: 0 40px 0 42px; outline: none; transition: border-color .15s, box-shadow .15s; }
+  .search input:focus { border-color: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+  .search .ico { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; display: flex; }
+  .search .clr { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%;
+    border: 0; background: transparent; color: var(--muted); font-size: 16px; }
+  .search .clr:hover { background: var(--surface-2); color: var(--text); }
+  .sort { display: flex; align-items: center; gap: 8px; }
+  .sort label { color: var(--muted); font-size: 13px; font-weight: 600; }
+  .sort select { height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); padding: 0 14px; font-weight: 600; font-size: 14px; }
+  .chip-btn { display: inline-flex; align-items: center; gap: 6px; }
+  .chip-btn .n { font-size: 11px; opacity: .75; font-weight: 700; }
+
+  /* place cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 16px; }
+  .pc { --lc: var(--l0); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding: 20px;
+    border-left: 5px solid var(--lc); transition: transform .18s, box-shadow .18s, border-color .18s; }
+  /* soft wash in the card's own danger-level colour, fading in from the left edge */
+  .pc::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--lc) 16%, transparent), color-mix(in srgb, var(--lc) 4%, transparent) 38%, transparent 70%); }
+  [data-theme="light"] .pc::before { background: linear-gradient(90deg, color-mix(in srgb, var(--lc) 11%, transparent), color-mix(in srgb, var(--lc) 3%, transparent) 38%, transparent 70%); }
+  .pc > * { position: relative; }
+  .pc:hover { transform: translateY(-2px); border-left-color: var(--lc);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--lc) 18%, transparent), 0 0 0 1px color-mix(in srgb, var(--lc) 22%, transparent); }
+  .pc.l1 { --lc: var(--l1); } .pc.l2 { --lc: var(--l2); } .pc.l3 { --lc: var(--l3); } .pc.l4 { --lc: var(--l4); }
+  .pc.enter { animation: rise .45s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .pc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .pc-name { font-size: 19px; font-weight: 800; letter-spacing: -.015em; line-height: 1.25; display: flex; gap: 8px; align-items: center; }
+  .pc-name span { min-width: 0; overflow-wrap: anywhere; }
+  .pc-state { color: var(--text-2); font-size: 13px; margin-top: 2px; }
+  .pc .lvl { font-size: 11.5px; padding: 4px 10px; border-radius: 8px; white-space: nowrap; flex: none; }
+
+  .when { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .cd small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+  .cd .big { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: clamp(34px, 9vw, 44px);
+    font-weight: 700; line-height: 1; letter-spacing: -.03em; color: var(--text); }
+  .cd .plain { display: block; color: var(--text-2); font-size: 13px; margin-top: 4px; }
+  .cd.soon .big { color: var(--lc); }
+  .cd.now .big { color: var(--lc); font-family: Inter, system-ui, sans-serif; font-weight: 900; font-size: clamp(28px, 8vw, 36px); letter-spacing: .01em;
+    animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  .facts { display: grid; gap: 4px; font-size: 13.5px; color: var(--text-2); text-align: left; padding-left: 12px;
+    border-left: 2px solid color-mix(in srgb, var(--lc) 40%, var(--line)); }
+  .facts b { color: var(--text); font-weight: 700; }
+
+  .bar { height: 8px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--lc) 45%, transparent), var(--lc)); transition: width 1s linear; }
+  .bar-lab { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
+  .hz { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .hz div { background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px; padding: 10px 8px; text-align: center; min-width: 0; }
+  .hz div { --hc: var(--muted); }
+  .hz .e { font-size: 16px; line-height: 1; width: 32px; height: 32px; margin: 0 auto 4px; border-radius: 10px; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--hc) 16%, transparent); border: 1px solid color-mix(in srgb, var(--hc) 28%, transparent); }
+  .hz .h-hail { --hc: #8b5cf6; } .hz .h-wind { --hc: #14b8a6; } .hz .h-lit { --hc: #eab308; } .hz .h-rain { --hc: #3b82f6; }
+  .hz b { display: block; font-size: 15px; font-weight: 800; margin-top: 2px; white-space: nowrap; }
+  .hz b small { font-size: 10.5px; font-weight: 600; color: var(--text-2); }
+  .hz span.l { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
+  .hz div.bad { border-color: color-mix(in srgb, var(--bad) 55%, transparent); background: color-mix(in srgb, var(--bad) 12%, var(--surface-2)); }
+  .hz div.bad b { color: var(--bad); }
+
+  .advice .e, .advice span { position: relative; }
+  .advice { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; font-weight: 600; font-size: 14.5px;
+    background: color-mix(in srgb, var(--lc) 13%, var(--surface)); border: 1px solid color-mix(in srgb, var(--lc) 40%, transparent); }
+  .advice .e { font-size: 18px; line-height: 1.3; }
+
+  .pc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  details.tech summary { cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 600; list-style: none; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "▸ "; } details.tech[open] summary::before { content: "▾ "; }
+  details.tech[open] { flex-basis: 100%; order: 2; }
+  .tech dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 10px 0 0; font-size: 12.5px; }
+  .tech dt { color: var(--muted); } .tech dd { margin: 0; font-family: "JetBrains Mono", ui-monospace, monospace; overflow-wrap: anywhere; }
+  .strip { display: flex; gap: 2px; margin-top: 4px; }
+  .strip i { flex: 1; height: 10px; border-radius: 2px; background: var(--l0); opacity: .35; }
+  .strip i.l1 { background: var(--l1); opacity: 1; } .strip i.l2 { background: var(--l2); opacity: 1; } .strip i.l3 { background: var(--l3); opacity: 1; } .strip i.l4 { background: var(--l4); opacity: 1; }
+
+  /* empty / pending */
+  .empty.card { padding: 56px 20px; }
+  .empty h2 { margin: 6px 0 4px; font-size: 20px; color: var(--text); }
+  .spin { width: 38px; height: 38px; border-radius: 50%; border: 4px solid var(--surface-3); border-top-color: var(--brand); margin: 0 auto 14px; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* all clear list */
+  details.clear { margin-top: 26px; padding: 0; overflow: hidden; }
+  details.clear > summary { list-style: none; cursor: pointer; padding: 16px 18px; display: flex; align-items: center; gap: 10px; font-weight: 700; }
+  details.clear > summary::-webkit-details-marker { display: none; }
+  details.clear > summary .chev { margin-left: auto; color: var(--muted); transition: transform .2s; }
+  details.clear[open] > summary .chev { transform: rotate(90deg); }
+  details.clear > summary:hover { background: var(--surface-2); }
+  .wx-chip { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; padding: 3px 10px; border-radius: 999px;
+    font-size: 12px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--line-soft); }
+  .wx-chip b { color: var(--text); }
+  .clear-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 8px; padding: 0 18px 18px; }
+  .cl { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line-soft); min-width: 0; color: var(--text); }
+  .cl:hover { border-color: var(--brand); }
+  .cl .t { min-width: 0; flex: 1; } .cl .t b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cl .t small { color: var(--muted); font-size: 12px; }
+  .cl .ok { color: var(--ok); font-weight: 800; font-size: 12px; white-space: nowrap; }
+  .none-match { color: var(--muted); padding: 4px 0 6px; grid-column: 1 / -1; }
+
+  /* comfortable tap targets (>= 40px) */
+  .chip-btn { min-height: 40px; }
+  .pc-foot .btn.sm, .empty .btn.sm { height: 40px; padding: 0 16px; }
+  .search .clr { width: 36px; height: 36px; right: 4px; }
+  details.tech summary { min-height: 40px; display: flex; align-items: center; }
+  /* yellow/orange text is hard to read on white — darken coloured countdowns in light theme */
+  /* light theme: the accent is light orange — deepen solid accent fills so white labels pass AA */
+  [data-theme="light"] .btn.primary, [data-theme="light"] .chip-btn.on { background: linear-gradient(135deg, var(--brand), var(--brand-2)); }
+  [data-theme="light"] .cd.soon .big, [data-theme="light"] .cd.now .big { color: color-mix(in srgb, var(--lc) 62%, #000); }
+
+  @media (max-width: 600px) {
+    .facts { text-align: left; }
+    .hz { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sort { width: 100%; } .sort select { flex: 1; }
+    .pc { padding: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pc, .pc.enter, .cd.now .big, .spin, .bar i { animation: none !important; transition: none !important; }
+    .pc:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1>⏱️ When will storms reach me?</h1>
+      <p>A live countdown for every town, airport and farm area where a thunderstorm is expected in the next 6 hours, with simple advice on what to do.</p>
+    </div>
+    <span class="updated" id="updated">Waiting for data…</span>
+  </div>
+
+  <section class="grid g3 sum-row" aria-label="Summary">
+    <div class="card stat t-places"><span class="sum-ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg></span><div><small>Places at risk</small><b id="s-places">–</b><span class="sub" id="s-places-sub">&nbsp;</span></div></div>
+    <div class="card stat t-soon"><span class="sum-ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></span><div><small>Soonest arrival</small><b class="mono" id="s-soon">–</b><span class="sub" id="s-soon-sub">&nbsp;</span></div></div>
+    <div class="card stat t-worst"><span class="sum-ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 3.5-5"/><path d="M4 18h16"/></svg></span><div><small>Worst danger level</small><b id="s-worst">–</b><span class="sub" id="s-worst-sub">&nbsp;</span></div></div>
+  </section>
+
+  <div class="controls">
+    <div class="search">
+      <span class="ico" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+      <input id="q" type="search" placeholder="Search a town, airport or state…" aria-label="Search places" autocomplete="off">
+      <button class="clr hidden" id="q-clr" aria-label="Clear search">✕</button>
+    </div>
+    <div class="sort">
+      <label for="sort">Sort by</label>
+      <select id="sort"><option value="soon">Soonest first</option><option value="danger">Most dangerous first</option></select>
+    </div>
+  </div>
+  <div class="chips" id="types" role="group" aria-label="Filter by type" style="margin-bottom:20px"></div>
+
+  <div id="list" aria-live="polite"></div>
+
+  <details class="card clear hidden" id="clear">
+    <summary><span aria-hidden="true">✅</span><span id="clear-title">All clear</span><span class="chev" aria-hidden="true">▸</span></summary>
+    <div class="clear-list" id="clear-list"></div>
+  </details>
+
+  <p class="disclaimer">Guidance only — always follow official IMD warnings.</p>
+</main>
+
+<script src="static/config.js"></script>
+<script src="static/pages.js"></script>
+<script>
+(() => {
+  "use strict";
+  BB.nav("arrivals");
+  const $ = (id) => document.getElementById(id);
+  const esc = BB.esc;
+  const TYPES = [
+    { k: "all", ico: "🌐", label: "All" },
+    { k: "city", ico: "🏙️", label: "Cities" },
+    { k: "airport", ico: "✈️", label: "Airports" },
+    { k: "agri", ico: "🌾", label: "Farms" },
+  ];
+  const typeIco = (t) => t === "airport" ? "✈️" : t === "agri" ? "🌾" : "🏙️";
+  const typeName = (t) => t === "airport" ? "Airport" : t === "agri" ? "Farm area" : "City";
+  const HORIZON = 6 * 3600;
+
+  const S = { sum: null, q: "", type: BB.store.get("arr.type") || "all", sort: BB.store.get("arr.sort") || "soon",
+    seen: new Set(), techOpen: new Set(), pending: false };
+  if (!TYPES.some((t) => t.k === S.type)) S.type = "all";
+  if (S.sort !== "soon" && S.sort !== "danger") S.sort = "soon";
+  $("sort").value = S.sort;
+
+  const lvOf = (p) => Math.max(0, Math.min(4, (p.level_window || p.level_max || p.level_now || 0) | 0));
+  const etaAt = (p) => S.sum.time + (p.status === "impact" ? 0 : (p.eta_min || 0) * 60);
+  const plainIn = (sec) => {
+    const m = Math.max(0, Math.round(sec / 60));
+    if (m < 1) return "any moment now";
+    if (m < 60) return `in about ${m} min`;
+    const h = Math.floor(m / 60), r = m % 60;
+    return `in about ${h} h${r ? " " + r + " min" : ""}`;
+  };
+  const DIRS = { N: "north", NNE: "north", NE: "north-east", ENE: "east", E: "east", ESE: "east", SE: "south-east", SSE: "south",
+    S: "south", SSW: "south", SW: "south-west", WSW: "west", W: "west", WNW: "west", NW: "north-west", NNW: "north" };
+  const dirWord = (c) => DIRS[String(c).toUpperCase()] || String(c);
+  const lightningWord = (v) => !v ? "None" : v < 2 ? "Some" : v < 8 ? "Frequent" : "Intense";
+  const mapLink = (p) => {
+    const lead = p.status === "impact" ? 0 : Math.min(360, Math.floor((p.eta_min || 0) / 10) * 10);
+    return `app.html?lat=${(+p.lat).toFixed(4)}&lon=${(+p.lon).toFixed(4)}&z=9.5&layer=level&lead=${lead}`;
+  };
+  const matches = (p) => {
+    if (S.type !== "all" && p.type !== S.type) return false;
+    if (!S.q) return true;
+    const q = S.q.toLowerCase();
+    return String(p.name || "").toLowerCase().includes(q) || String(p.state || "").toLowerCase().includes(q);
+  };
+
+  // ---------- controls ----------
+  function drawChips() {
+    const all = S.sum ? S.sum.places.filter((p) => p.status !== "clear") : [];
+    $("types").innerHTML = TYPES.map((t) => {
+      const n = t.k === "all" ? all.length : all.filter((p) => p.type === t.k).length;
+      return `<button class="chip-btn ${S.type === t.k ? "on" : ""}" data-k="${t.k}" aria-pressed="${S.type === t.k}">
+        <span aria-hidden="true">${t.ico}</span>${t.label}${S.sum ? `<span class="n">${n}</span>` : ""}</button>`;
+    }).join("");
+  }
+  $("types").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-k]"); if (!b) return;
+    S.type = b.dataset.k; BB.store.set("arr.type", S.type); drawChips(); draw();
+  });
+  $("q").addEventListener("input", (e) => { S.q = e.target.value.trim(); $("q-clr").classList.toggle("hidden", !S.q); draw(); });
+  $("q-clr").onclick = () => { $("q").value = ""; S.q = ""; $("q-clr").classList.add("hidden"); $("q").focus(); draw(); };
+  $("sort").onchange = (e) => { S.sort = e.target.value; BB.store.set("arr.sort", S.sort); draw(); };
+
+  // ---------- summary ----------
+  function drawSummary() {
+    const s = S.sum, risk = s.places.filter((p) => p.status !== "clear");
+    $("updated").textContent = `Updated ${BB.fmtIST(s.time)} IST`;
+    $("s-places").textContent = risk.length;
+    const nImp = risk.filter((p) => p.status === "impact").length;
+    $("s-places-sub").textContent = risk.length ? (nImp ? `${nImp} being hit right now` : `out of ${s.places.length} watched`) : `All ${s.places.length} places clear`;
+    const worst = risk.reduce((m, p) => Math.max(m, lvOf(p)), 0);
+    $("s-worst").innerHTML = risk.length ? `<span class="lvl l${worst}" style="font-size:15px;padding:4px 12px">${BB.LEVELS[worst]}</span>` : "None";
+    $("s-worst-sub").textContent = risk.length ? BB.ADVICE[worst] : "No action needed.";
+    tickSummary();
+  }
+  function tickSummary() {
+    if (!S.sum) return;
+    const risk = S.sum.places.filter((p) => p.status !== "clear");
+    if (!risk.length) { $("s-soon").textContent = "—"; $("s-soon-sub").textContent = "Nothing on the way"; return; }
+    if (risk.some((p) => p.status === "impact")) {
+      const p = risk.find((x) => x.status === "impact");
+      $("s-soon").textContent = "NOW"; $("s-soon-sub").textContent = `Storm over ${p.name}`; return;
+    }
+    const p = risk.reduce((a, b) => (a.eta_min ?? 1e9) <= (b.eta_min ?? 1e9) ? a : b);
+    const rem = etaAt(p) - BB.now();
+    $("s-soon").textContent = rem <= 0 ? "NOW" : BB.fmtCD(rem);
+    $("s-soon-sub").textContent = `${p.name} · ${BB.fmtIST(etaAt(p))} IST`;
+  }
+
+  // ---------- cards ----------
+  function card(p) {
+    const lv = lvOf(p), h = p.hazards || {}, now = p.status === "impact", at = etaAt(p);
+    const hail = h.hail_prob != null ? Math.round(h.hail_prob * 100) : null;
+    const gust = h.gust_ms != null ? Math.round(h.gust_ms * 3.6) : null;
+    const lit = h.lightning != null ? +h.lightning : null;
+    const cb = h.cloudburst_prob != null ? Math.round(h.cloudburst_prob * 100) : null;
+    const tile = (k, e, lab, val, bad) => `<div class="h-${k}${bad ? " bad" : ""}" title="${esc(lab)}${bad ? " — dangerous" : ""}"><span class="e" aria-hidden="true">${e}</span><b>${val}</b><span class="l">${lab}</span></div>`;
+    const na = "—";
+    const levels = Array.isArray(p.levels) ? p.levels : [];
+    const enter = !S.seen.has(p.id); S.seen.add(p.id);
+    return `<article class="card pc l${lv}${enter ? " enter" : ""}" data-id="${esc(p.id)}">
+      <div class="pc-top">
+        <div style="min-width:0">
+          <div class="pc-name"><span aria-hidden="true">${typeIco(p.type)}</span><span>${esc(p.name)}</span></div>
+          <div class="pc-state">${esc(typeName(p.type))} · ${esc(p.state)}</div>${wxChip(p)}
+        </div>
+        <span class="lvl l${lv}">${BB.LEVELS[lv]} danger</span>
+      </div>
+      <div class="when">
+        <div class="cd ${now ? "now" : ""}" ${now ? "" : `data-eta="${at}"`}>
+          <small>${now ? "Storm is here" : "Arrives in"}</small>
+          <span class="big">${now ? "IMPACT NOW" : "--:--"}</span>
+          <span class="plain">${now ? "Take the advice below right away" : "&nbsp;"}</span>
+        </div>
+        <div class="facts">
+          ${now ? "" : `<span>Arrives at <b>${BB.fmtIST(at)} IST</b></span>`}
+          ${p.approach_from ? `<span>Coming from the <b>${esc(dirWord(p.approach_from))}</b></span>` : ""}
+          ${p.duration_min != null ? `<span>Lasts about <b>${Math.round(p.duration_min)} min</b></span>` : ""}
+        </div>
+      </div>
+      ${now ? "" : `<div><div class="bar" role="progressbar" aria-label="How close the storm is" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i data-eta="${at}"></i></div>
+        <div class="bar-lab"><span>6 h away</span><span>Arrives</span></div></div>`}
+      <div class="hz">
+        ${tile("hail", "🧊", "Hail chance", hail == null ? na : hail + "%", hail >= 30)}
+        ${tile("wind", "🌪️", "Wind gusts", gust == null ? na : gust + "<small> km/h</small>", gust >= 72)}
+        ${tile("lit", "⚡", "Lightning", lit == null ? na : lightningWord(lit), lit >= 2)}
+        ${tile("rain", "🌧️", "Cloudburst", cb == null ? na : cb + "%", cb >= 30)}
+      </div>
+      <div class="advice"><span class="e" aria-hidden="true">👉</span><span>${esc(BB.ADVICE[lv])}</span></div>
+      <div class="pc-foot">
+        <details class="tech" ${S.techOpen.has(p.id) ? "open" : ""}><summary>Technical details</summary>
+          <dl>
+            <dt>Status</dt><dd>${esc(p.status)}</dd>
+            <dt>ETA</dt><dd>${p.eta_min != null ? esc(p.eta_min) + " min" : na}</dd>
+            <dt>Level now / max</dt><dd>${esc(p.level_now ?? na)} / ${esc(p.level_max ?? na)}${p.level_window != null ? ` (window ${esc(p.level_window)})` : ""}</dd>
+            <dt>Hail prob.</dt><dd>${h.hail_prob != null ? esc(h.hail_prob) : na}</dd>
+            <dt>Gust</dt><dd>${h.gust_ms != null ? esc(h.gust_ms) + " m/s" : na}</dd>
+            <dt>Lightning</dt><dd>${h.lightning != null ? esc(h.lightning) + " fl/km²/h" : na}</dd>
+            <dt>Cloudburst prob.</dt><dd>${h.cloudburst_prob != null ? esc(h.cloudburst_prob) : na}</dd>
+            <dt>Rain (1 h max)</dt><dd>${h.rain1h_mm != null ? esc(h.rain1h_mm) + " mm" : na}</dd>
+            <dt>Approach bearing</dt><dd>${esc(p.approach_from ?? na)}</dd>
+            <dt>Storm cell</dt><dd>${esc(p.cell_id ?? na)}</dd>
+            <dt>Location</dt><dd>${(+p.lat).toFixed(3)}, ${(+p.lon).toFixed(3)}</dd>
+          </dl>
+          ${levels.length ? `<div class="fine" style="margin-top:10px">Danger level, next 6 h (10-min steps)</div>
+            <div class="strip">${levels.map((l, i) => `<i class="l${Math.max(0, Math.min(4, l | 0))}" title="+${i * 10} min: ${BB.LEVELS[Math.max(0, Math.min(4, l | 0))]}"></i>`).join("")}</div>` : ""}
+        </details>
+        <a class="btn sm primary" href="${mapLink(p)}"><span aria-hidden="true">🗺️</span>View on map</a>
+      </div>
+    </article>`;
+  }
+
+  function draw() {
+    if (!S.sum) return;
+    const risk = S.sum.places.filter((p) => p.status !== "clear");
+    const clear = S.sum.places.filter((p) => p.status === "clear");
+    const shown = risk.filter(matches).sort((a, b) => {
+      const ea = a.status === "impact" ? -1 : (a.eta_min ?? 1e9), eb = b.status === "impact" ? -1 : (b.eta_min ?? 1e9);
+      return S.sort === "danger" ? (lvOf(b) - lvOf(a)) || (ea - eb) : (ea - eb) || (lvOf(b) - lvOf(a));
+    });
+    // remember which technical panels are open before re-rendering
+    $("list").querySelectorAll(".pc").forEach((el) => {
+      const d = el.querySelector("details.tech");
+      if (d && d.open) S.techOpen.add(el.dataset.id); else S.techOpen.delete(el.dataset.id);
+    });
+    if (!risk.length) {
+      $("list").innerHTML = `<div class="card empty"><div class="big">☀️</div><h2>No storms expected anywhere in the next 6 hours</h2>
+        <p>All ${S.sum.places.length} watched places are clear. This page updates by itself — no need to refresh.</p></div>`;
+    } else if (!shown.length) {
+      const what = S.type === "all" ? "places" : TYPES.find((t) => t.k === S.type).label.toLowerCase();
+      $("list").innerHTML = `<div class="card empty"><div class="big">🔍</div><h2>No ${esc(what)} at risk${S.q ? ` matching “${esc(S.q)}”` : ""}</h2>
+        <p>${risk.length} place${risk.length > 1 ? "s are" : " is"} at risk elsewhere. <button class="btn sm" id="reset">Show all places</button></p></div>`;
+      $("reset").onclick = () => { S.type = "all"; S.q = ""; $("q").value = ""; $("q-clr").classList.add("hidden"); BB.store.set("arr.type", "all"); drawChips(); draw(); };
+    } else {
+      $("list").innerHTML = `<div class="cards">${shown.map(card).join("")}</div>`;
+    }
+    // all-clear list (same search box + type filter)
+    const cl = clear.filter(matches).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    $("clear").classList.toggle("hidden", !clear.length);
+    $("clear-title").textContent = `All clear (${clear.length} place${clear.length === 1 ? "" : "s"})`;
+    $("clear-list").innerHTML = cl.length ? cl.map((p) => `<a class="cl" href="app.html?lat=${(+p.lat).toFixed(4)}&lon=${(+p.lon).toFixed(4)}&z=9.5&layer=level&lead=0" title="View ${esc(p.name)} on map">
+        <span aria-hidden="true">${typeIco(p.type)}</span><span class="t"><b>${esc(p.name)}</b><small>${esc(p.state)}${wxText(p)}</small></span><span class="ok">✓ Clear</span></a>`).join("")
+      : `<div class="none-match">No clear places match your search.</div>`;
+    tick();
+  }
+
+  // live weather for every place (Open-Meteo via /api/weather/places, refreshed every 10 min)
+  S.wx = {};
+  const wxOf = (p) => S.wx[p.id];
+  const wxText = (p) => { const w = wxOf(p); return w && w.temp_c != null ? ` · ${w.icon} ${Math.round(w.temp_c)}°` : ""; };
+  function wxChip(p) {
+    const w = wxOf(p); if (!w || w.temp_c == null) return "";
+    return `<div class="wx-chip" title="Live weather now (Open-Meteo)">${w.icon} <b>${Math.round(w.temp_c)}°C</b> ${esc(w.text)}
+      · 💧${w.humidity ?? "–"}% · 🌬️ ${w.wind_kmh == null ? "–" : Math.round(w.wind_kmh)} km/h${w.thunder ? " · <b>⚡ thunder now</b>" : ""}</div>`;
+  }
+  async function loadWx() {
+    try { S.wx = (await BB.getJSON("/api/weather/places")).places || {}; if (S.sum) draw(); } catch (_) { /* weather is optional */ }
+  }
+  loadWx(); setInterval(loadWx, 10 * 60 * 1000);
+
+  function tick() {
+    if (!S.sum) return;
+    const t = BB.now();
+    document.querySelectorAll(".cd[data-eta]").forEach((el) => {
+      const rem = +el.dataset.eta - t;
+      el.querySelector(".big").textContent = rem <= 0 ? "ARRIVING" : BB.fmtCD(rem);
+      el.querySelector(".plain").textContent = rem <= 0 ? "The storm should be overhead now" : plainIn(rem);
+      el.classList.toggle("soon", rem < 1800);
+    });
+    document.querySelectorAll(".bar i[data-eta]").forEach((el) => {
+      const rem = +el.dataset.eta - t;
+      const pct = Math.max(2, Math.min(100, 100 - (rem / HORIZON) * 100));
+      el.style.width = pct + "%";
+      el.parentNode.setAttribute("aria-valuenow", String(Math.round(pct)));
+    });
+    tickSummary();
+  }
+
+  function pending() {
+    S.pending = true;
+    $("list").innerHTML = `<div class="card empty"><div class="spin" aria-hidden="true"></div><h2>Getting the first forecast ready…</h2>
+      <p>The system is collecting radar and satellite data. Countdowns will appear here automatically in a minute or two.</p></div>`;
+    $("updated").textContent = "Starting up…";
+  }
+
+  drawChips();
+  $("list").innerHTML = `<div class="card empty"><div class="spin" aria-hidden="true"></div><p>Loading the latest forecast…</p></div>`;
+  setInterval(tick, 1000);
+
+  BB.live({
+    onCycle(sum) { S.sum = sum; S.pending = false; drawChips(); drawSummary(); draw(); },
+    onPending() { if (!S.sum) pending(); },
+    onTick(m) { if (!S.sum && m && m.warming_up && !S.pending) pending(); },
+  }).then((meta) => {
+    if (!meta && !S.sum) {
+      $("list").innerHTML = `<div class="card empty"><div class="big">📡</div><h2>Can’t reach the forecast server</h2>
+        <p>Please check your connection. We’ll try again automatically in 20 seconds.</p><p><button class="btn sm" id="retry">Try again now</button></p></div>`;
+      $("updated").textContent = "Offline";
+      $("retry").onclick = () => location.reload();
+      setTimeout(() => location.reload(), 20000);
+    }
+  });
+})();
+</script>
+</body>
+</html>

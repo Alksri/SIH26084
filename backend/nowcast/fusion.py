@@ -44,6 +44,7 @@ class FusionEngine:
     def __init__(self, grid: Grid, sat_lon: float):
         self.grid = grid
         self.parallax = ParallaxCorrector(grid, sat_lon)
+        self._parallax_by_lon: dict[float, ParallaxCorrector] = {sat_lon: self.parallax}
         self._radial_cache: dict[str, tuple] = {}
 
     # -------------------------------------------------------------- radar
@@ -101,11 +102,21 @@ class FusionEngine:
         return dbz, q, cov, outflow, used
 
     # ---------------------------------------------------------- satellite
+    def _corrector(self, obs) -> ParallaxCorrector:
+        # each satellite views from its own longitude (INSAT-3DR 74 E, Himawari-9 140.7 E)
+        lon = obs.payload.get("sat_lon")
+        if lon is None:
+            return self.parallax
+        if lon not in self._parallax_by_lon:
+            self._parallax_by_lon[lon] = ParallaxCorrector(self.grid, lon)
+        return self._parallax_by_lon[lon]
+
     def _corrected(self, obs):
         if "tir1_pc" not in obs.payload:
-            obs.payload["tir1_pc"] = self.parallax.correct(obs.payload["tir1"])
+            pc = self._corrector(obs)
+            obs.payload["tir1_pc"] = pc.correct(obs.payload["tir1"])
             wv = obs.payload.get("wv")
-            obs.payload["wv_pc"] = self.parallax.correct(wv) if wv is not None and np.isfinite(wv).any() else None
+            obs.payload["wv_pc"] = pc.correct(wv) if wv is not None and np.isfinite(wv).any() else None
         return obs.payload["tir1_pc"], obs.payload["wv_pc"]
 
     def satellite(self, t: float, sats, vi, vj):

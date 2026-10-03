@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Health — BUMBLEBLE</title>
+<meta name="description" content="Is the BUMBLEBLE storm forecast working, and how good is it? Data feed health, forecast accuracy and downloads.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/pages.css">
+<style>
+  /* status text colours: the shared --ok/--warn are too pale for text on white, so darken them in light mode */
+  :root { --ok-ink: var(--ok); --warn-ink: var(--warn); --bad-ink: var(--bad); }
+  [data-theme="light"] { --ok-ink: #15803d; --warn-ink: #b45309; --bad-ink: #b91c1c; }
+  /* decorative hue palette (not danger levels) - darker variants in light theme for contrast */
+  :root { --c-sky: #38bdf8; --c-indigo: #818cf8; --c-teal: #2dd4bf; --c-green: #34d399; --c-amber: #fbbf24; --c-rose: #fb7185; --c-slate: #94a3b8; }
+  [data-theme="light"] { --c-sky: #0284c7; --c-indigo: #4f46e5; --c-teal: #0d9488; --c-green: #059669; --c-amber: #d97706; --c-rose: #e11d48; --c-slate: #64748b; }
+  /* a coloured icon tile: set --tc on it (or on an ancestor) */
+  .ico-tile { flex: none; display: grid; place-items: center; border-radius: 12px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tc, var(--brand)) 22%, transparent), color-mix(in srgb, var(--tc, var(--brand)) 8%, transparent));
+    border: 1px solid color-mix(in srgb, var(--tc, var(--brand)) 38%, transparent); box-shadow: 0 6px 16px color-mix(in srgb, var(--tc, var(--brand)) 14%, transparent); }
+  .t-sky { --tc: var(--c-sky); } .t-indigo { --tc: var(--c-indigo); } .t-teal { --tc: var(--c-teal); } .t-green { --tc: var(--c-green); }
+  .t-amber { --tc: var(--c-amber); } .t-rose { --tc: var(--c-rose); } .t-slate { --tc: var(--c-slate); }
+  /* comfortable tap targets (>= 40px) for the page's own controls */
+  .feed .btn.sm { height: 40px; padding: 0 14px; }
+  #speeds .chip-btn { min-height: 40px; min-width: 52px; padding: 8px 14px; }
+  #speeds .chip-btn[disabled] { opacity: .5; cursor: not-allowed; }
+  details.tech summary { min-height: 40px; }
+  .sys-section { margin-top: 36px; }
+  .sys-section > h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: -.015em; }
+  .sys-section > .lead { margin: 0 0 16px; color: var(--text-2); max-width: 720px; }
+  .sys-section > h2::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 10px; vertical-align: 2px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2)); box-shadow: 0 0 0 4px var(--brand-soft); }
+  .card.lift:hover { transform: translateY(-2px); }
+
+  /* ---------- hero ---------- */
+  .hero { --tone: var(--muted); position: relative; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: center;
+    padding: 24px; border-radius: 20px; border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--line));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tone) 14%, var(--surface)), var(--surface) 65%); box-shadow: var(--shadow-sm); }
+  .hero::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--tone); }
+  .hero::after { content: ""; position: absolute; right: -80px; top: -120px; width: 320px; height: 320px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, color-mix(in srgb, var(--tone) 22%, transparent), transparent 70%); }
+  .hero > * { position: relative; z-index: 1; }
+  .hero.ok { --tone: var(--ok); } .hero.warn { --tone: var(--warn); } .hero.bad { --tone: var(--bad); }
+  .hero.wait, .hero.partial { --tone: var(--c-sky); }
+  .hero h2 .tone-tag { display: inline-block; vertical-align: 4px; margin-left: 10px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 99px; color: color-mix(in srgb, var(--tone) 72%, var(--text)); background: color-mix(in srgb, var(--tone) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent); white-space: nowrap; }
+  .hero-ico { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; font-size: 34px; position: relative;
+    background: color-mix(in srgb, var(--tone) 20%, transparent); border: 2px solid var(--tone); }
+  .hero-ico::after { content: ""; position: absolute; inset: -8px; border-radius: 50%; border: 2px solid var(--tone); opacity: 0; animation: ping 2.4s ease-out infinite; }
+  @keyframes ping { 0% { transform: scale(.85); opacity: .55; } 100% { transform: scale(1.25); opacity: 0; } }
+  .hero h2 { margin: 0; font-size: clamp(20px, 3vw, 26px); letter-spacing: -.02em; line-height: 1.2; }
+  .hero p { margin: 6px 0 0; color: var(--text-2); }
+  .hero-facts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 4px; }
+  .fact { background: color-mix(in srgb, var(--surface-2) 80%, transparent); border: 1px solid var(--line-soft); border-top: 2px solid color-mix(in srgb, var(--tone) 55%, var(--line)); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+  .fact small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+  .fact b { display: block; font-size: 16px; font-weight: 700; margin-top: 2px; overflow-wrap: anywhere; }
+  .fact span { display: block; font-size: 12px; color: var(--muted); }
+
+  /* ---------- feeds ---------- */
+  .feed { display: flex; flex-direction: column; gap: 12px; }
+  .feed-top { display: flex; gap: 12px; align-items: flex-start; }
+  .feed-ico { width: 46px; height: 46px; font-size: 22px; }
+  .feed { border-top: 3px solid color-mix(in srgb, var(--tc, var(--brand)) 70%, transparent); }
+  .feed-name { min-width: 0; flex: 1; }
+  .feed-name b { display: block; font-size: 16px; }
+  .feed-name span { display: block; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+  .pill { flex: none; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 99px; letter-spacing: .02em;
+    color: var(--pi, var(--pc)); background: color-mix(in srgb, var(--pc) 15%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 40%, transparent); }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--pc); }
+  .pill.OK { --pc: var(--ok); --pi: var(--ok-ink); } .pill.STALE { --pc: var(--warn); --pi: var(--warn-ink); } .pill.DOWN { --pc: var(--bad); --pi: var(--bad-ink); } .pill.WAITING { --pc: var(--c-slate); --pi: var(--text-2); }
+  .pill.OK i { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); animation: blink 2s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: .45; } }
+  .feed-flag { font-size: 12.5px; font-weight: 600; color: var(--warn-ink); }
+  .feed-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .feed-rows div { background: color-mix(in srgb, var(--tc, var(--brand)) 6%, var(--surface-2)); border: 1px solid var(--line-soft); border-radius: 10px; padding: 8px 10px; }
+  .feed-rows small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
+  .feed-rows b { font-size: 15px; }
+  .feed-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+  .btn.danger:hover { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+  .btn.restore { border-color: color-mix(in srgb, var(--ok) 50%, var(--line)); }
+  .btn.restore:hover { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+  .btn[disabled] { opacity: .55; cursor: progress; }
+  .note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--c-amber) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--c-amber) 35%, var(--line)); border-left-width: 4px; color: var(--text-2); font-size: 13.5px; margin-top: 14px; }
+
+  /* ---------- demo controls ---------- */
+  .demo { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; }
+  .demo-clock { text-align: right; }
+  .demo-clock b { font-size: clamp(26px, 5vw, 34px); font-weight: 700; letter-spacing: -.02em; display: block; }
+  .demo-clock small { color: var(--muted); font-size: 12px; }
+  .demo h3 { margin: 0 0 4px; font-size: 16px; }
+  .demo p { margin: 0 0 12px; color: var(--text-2); font-size: 14px; }
+
+  /* ---------- accuracy ---------- */
+  .acc h3 { margin: 0; font-size: 17px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .acc h3 small { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .acc .score { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 14px; }
+  .acc .score b { font-size: 38px; font-weight: 800; letter-spacing: -.03em; line-height: 1;
+    background: linear-gradient(120deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  [data-theme="light"] .acc .score b { background-image: linear-gradient(120deg, color-mix(in srgb, var(--brand) 85%, #000), color-mix(in srgb, var(--brand-2) 85%, #000)); }
+  .acc h3 .lead-tag { display: inline-flex; align-items: center; gap: 8px; }
+  .acc h3 .lead-tag::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tc) 22%, transparent); }
+  .acc { border-top: 3px solid color-mix(in srgb, var(--tc) 65%, transparent); }
+  .acc .score span { color: var(--text-2); font-size: 13px; }
+  .bar { margin: 10px 0; }
+  .bar-lab { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--text-2); margin-bottom: 5px; }
+  .bar-lab b { color: var(--text); }
+  .bar-lab span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 7px; background: var(--bc, var(--brand)); }
+  .bar-track { height: 10px; border-radius: 99px; background: color-mix(in srgb, var(--bc, var(--brand)) 12%, var(--surface-3)); overflow: hidden; }
+  .bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--bc, var(--brand)) 70%, transparent), var(--bc, var(--brand)));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--bc, var(--brand)) 40%, transparent); transition: width .8s cubic-bezier(.2, .7, .2, 1); }
+  .bar.score-bar .bar-fill { background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+  .verdict { margin-top: 12px; font-size: 13px; font-weight: 600; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line-soft); }
+  .verdict.good { color: var(--ok-ink); background: color-mix(in srgb, var(--ok) 10%, var(--surface)); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+  .verdict.meh { color: var(--warn-ink); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+  .collecting { display: grid; place-items: center; text-align: center; min-height: 180px; color: var(--muted); }
+  .collecting .big { font-size: 30px; }
+  .ci-card { display: flex; gap: 16px; align-items: center; margin-top: 14px; }
+  .ci-card .big { font-size: 28px; width: 56px; height: 56px; border-radius: 16px; }
+  .ci-card { border-left: 4px solid var(--c-green); }
+  .ci-card b.n { color: var(--ok-ink); }
+  .ci-card b.n { font-size: 26px; font-weight: 800; }
+
+  /* ---------- stat tiles ---------- */
+  .tile { display: flex; flex-direction: column; gap: 4px; }
+  .tile .t-ico { font-size: 19px; width: 38px; height: 38px; border-radius: 11px; margin-bottom: 6px; }
+  .tile { position: relative; overflow: hidden; }
+  .tile::after { content: ""; position: absolute; right: -30px; top: -30px; width: 110px; height: 110px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, color-mix(in srgb, var(--tc) 16%, transparent), transparent 70%); }
+  .tile small { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: color-mix(in srgb, var(--tc) 55%, var(--text-2)); font-weight: 700; }
+  .tile b { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+  .tile p { margin: 0; color: var(--text-2); font-size: 13px; }
+
+  /* ---------- how it works ---------- */
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; counter-reset: s; }
+  .step { position: relative; text-align: center; padding: 20px 14px; }
+  .step { border-top: 3px solid color-mix(in srgb, var(--tc) 70%, transparent); }
+  .step .s-ico { width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 16px; font-size: 26px; position: relative; }
+  .step .s-ico::after { counter-increment: s; content: counter(s); position: absolute; right: -8px; top: -8px; width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 11.5px; font-weight: 800; color: #fff; background: color-mix(in srgb, var(--tc) 80%, #0b1220);
+    border: 2px solid var(--surface); }
+  .step b { display: block; font-size: 16px; color: color-mix(in srgb, var(--tc) 45%, var(--text)); }
+  .step p { margin: 6px 0 0; color: var(--text-2); font-size: 13.5px; }
+  /* gradient connector between steps */
+  .step:not(:last-child)::after { content: ""; position: absolute; right: -15px; top: 47px; width: 16px; height: 3px; border-radius: 3px; z-index: 1;
+    background: linear-gradient(90deg, var(--tc), var(--tn)); }
+  .step.st1 { --tc: var(--c-sky); --tn: var(--c-indigo); } .step.st2 { --tc: var(--c-indigo); --tn: var(--c-teal); }
+  .step.st3 { --tc: var(--c-teal); --tn: var(--c-green); } .step.st4 { --tc: var(--c-green); --tn: var(--c-amber); } .step.st5 { --tc: var(--c-amber); }
+  .steps-rail { height: 4px; border-radius: 99px; margin: 0 0 14px; opacity: .85;
+    background: linear-gradient(90deg, var(--c-sky), var(--c-indigo), var(--c-teal), var(--c-green), var(--c-amber)); }
+
+  /* ---------- downloads ---------- */
+  .dl { display: flex; flex-direction: column; gap: 8px; color: var(--text); }
+  .dl .d-ico { font-size: 24px; width: 50px; height: 50px; border-radius: 14px; margin-bottom: 4px; }
+  .dl b { font-size: 16px; }
+  .dl p { margin: 0; color: var(--text-2); font-size: 13.5px; flex: 1; }
+  .dl .go { color: color-mix(in srgb, var(--tc) 75%, var(--text)); font-weight: 700; font-size: 14px; display: inline-flex; align-self: flex-start;
+    padding: 6px 12px; border-radius: 99px; background: color-mix(in srgb, var(--tc) 12%, transparent); border: 1px solid color-mix(in srgb, var(--tc) 30%, transparent); }
+  .dl:hover .go { background: color-mix(in srgb, var(--tc) 20%, transparent); }
+
+  /* ---------- technical details ---------- */
+  details.tech { margin-top: 36px; }
+  details.tech summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "▸"; color: var(--brand); transition: transform .2s; }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 8px; margin-top: 14px; }
+  .kv div { display: flex; justify-content: space-between; gap: 10px; background: var(--surface-2); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+  .kv div { border-left: 3px solid color-mix(in srgb, var(--brand) 55%, transparent); }
+  .kv span:first-child { color: var(--text-2); }
+  .tbl-wrap { overflow-x: auto; margin-top: 14px; }
+  table.vt { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.vt th, table.vt td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  table.vt th:first-child, table.vt td:first-child { text-align: left; }
+  table.vt th { color: var(--muted); font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+
+  /* ---------- entrance animation ---------- */
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .55s ease, transform .55s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .hero-ico::after, .pill.OK i { animation: none; }
+    .card, .bar-fill { transition: none; }
+    .card.lift:hover { transform: none; }
+  }
+
+  @media (max-width: 960px) {
+    .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .step:not(:last-child)::after { display: none; }
+    .hero-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 600px) {
+    .hero { grid-template-columns: minmax(0, 1fr); padding: 18px; text-align: left; }
+    .hero-ico { width: 56px; height: 56px; font-size: 26px; }
+    .demo { grid-template-columns: minmax(0, 1fr); }
+    .demo-clock { text-align: left; }
+    .steps { grid-template-columns: minmax(0, 1fr); }
+    .step { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 0 14px; text-align: left; align-items: center; }
+    .step .s-ico { grid-row: span 2; margin: 0; }
+    .step:not(:last-child)::after { display: block; right: auto; left: 41px; top: auto; bottom: -15px; width: 3px; height: 16px; background: linear-gradient(180deg, var(--tc), var(--tn)); }
+    .step p { margin: 2px 0 0; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1>Is the forecast working?</h1>
+      <p>A plain-language check on the data feeding BUMBLEBLE, how accurate its recent forecasts have been, and how it all works.</p>
+    </div>
+    <span class="updated" id="updated">Loading…</span>
+  </div>
+
+  <section class="hero wait reveal" id="hero" aria-live="polite">
+    <div class="hero-ico" id="hero-ico" aria-hidden="true">⏳</div>
+    <div>
+      <h2 id="hero-title">Checking the system…</h2>
+      <p id="hero-sub">Connecting to the forecast server.</p>
+    </div>
+    <div class="hero-facts" id="hero-facts"></div>
+  </section>
+
+  <section class="sys-section reveal" aria-labelledby="h-feeds">
+    <h2 id="h-feeds">Data feeds</h2>
+    <p class="lead">The forecast is built from weather radar, satellite pictures and lightning sensors. Here is whether each one is sending fresh data.</p>
+    <div class="grid g3" id="feeds"><div class="card empty" style="grid-column:1/-1"><div class="big">📡</div>Waiting for feed status…</div></div>
+    <div class="note hidden" id="outage-note"><span aria-hidden="true">💡</span><span><b>Demo tip:</b> press “Simulate outage” to switch a feed off. The forecast keeps running on the remaining feeds — for example satellite and lightning fill in where radar is missing — so you can see how it degrades gracefully instead of failing. Press “Restore” to bring it back.</span></div>
+  </section>
+
+  <section class="sys-section reveal hidden" id="demo-sec" aria-labelledby="h-demo">
+    <h2 id="h-demo">Demo controls</h2>
+    <p class="lead">This server is running a demonstration with simulated storms. You can speed up time to watch storms grow, move and fade.</p>
+    <div class="card demo">
+      <div>
+        <h3>Demo speed</h3>
+        <p id="speed-help">How many seconds of storm time pass for every real second.</p>
+        <div class="chips" id="speeds" role="group" aria-label="Demo speed"></div>
+      </div>
+      <div class="demo-clock">
+        <small>Demo clock (IST)</small>
+        <b class="mono" id="clock">--:--:--</b>
+        <small id="clock-speed"></small>
+      </div>
+    </div>
+  </section>
+
+  <section class="sys-section reveal" aria-labelledby="h-acc">
+    <h2 id="h-acc">How accurate is the forecast?</h2>
+    <p class="lead">Every forecast is checked against what the radar actually saw when that time arrived. We also compare it with a simple guess that the storm just stays where it is — beating that guess shows the motion forecast is adding real value.</p>
+    <div class="grid g3" id="acc"></div>
+    <div class="card ci-card lift" id="ci"></div>
+  </section>
+
+  <section class="sys-section reveal" aria-labelledby="h-sees">
+    <h2 id="h-sees">What the system sees right now</h2>
+    <p class="lead">A snapshot from the latest analysis.</p>
+    <div class="grid g4" id="tiles"><div class="card empty" style="grid-column:1/-1"><div class="big">⏳</div>Waiting for the first analysis…</div></div>
+  </section>
+
+  <section class="sys-section reveal" aria-labelledby="h-how">
+    <h2 id="h-how">How it works</h2>
+    <p class="lead">Every few minutes, BUMBLEBLE runs the same five steps.</p>
+    <div class="steps-rail" aria-hidden="true"></div>
+    <ol class="steps">
+      <li class="card step st1"><div class="s-ico ico-tile" aria-hidden="true">📡</div><b>Collect</b><p>Gather the latest radar scans, satellite images and lightning reports.</p></li>
+      <li class="card step st2"><div class="s-ico ico-tile" aria-hidden="true">🧩</div><b>Combine</b><p>Merge them into one picture. Satellite and lightning fill gaps where radar can’t see.</p></li>
+      <li class="card step st3"><div class="s-ico ico-tile" aria-hidden="true">🔍</div><b>Detect</b><p>Find each storm, measure its strength and spot new storms as they start to form.</p></li>
+      <li class="card step st4"><div class="s-ico ico-tile" aria-hidden="true">🔮</div><b>Forecast</b><p>Track how storms are moving and project where they will be over the next 6 hours.</p></li>
+      <li class="card step st5"><div class="s-ico ico-tile" aria-hidden="true">🔔</div><b>Warn</b><p>Work out when each town, farm area and airport will be hit — and how badly.</p></li>
+    </ol>
+  </section>
+
+  <section class="sys-section reveal" aria-labelledby="h-dl">
+    <h2 id="h-dl">Downloads</h2>
+    <p class="lead">Take the current forecast with you or load it into other tools.</p>
+    <div class="grid g3">
+      <a class="card dl lift t-sky" href="/api/export/bulletin.html" target="_blank" rel="noopener">
+        <span class="d-ico ico-tile" aria-hidden="true">📰</span><b>Warning bulletin</b>
+        <p>For district officials and media — a printable one-page summary of current warnings.</p><span class="go">Open bulletin ↗</span></a>
+      <a class="card dl lift t-green" href="/api/export/places.csv" download>
+        <span class="d-ico ico-tile" aria-hidden="true">📊</span><b>Arrival times (CSV)</b>
+        <p>For airports and planners — a spreadsheet of when storms reach each place and how strong they are.</p><span class="go">Download CSV ↓</span></a>
+      <a class="card dl lift t-indigo" href="/api/export/nowcast.geojson" download>
+        <span class="d-ico ico-tile" aria-hidden="true">🗺️</span><b>Storm map data (GeoJSON)</b>
+        <p>For GIS and control-room teams — storm outlines and tracks to load into mapping software.</p><span class="go">Download GeoJSON ↓</span></a>
+    </div>
+  </section>
+
+  <details class="card tech reveal">
+    <summary>Technical details</summary>
+    <div class="kv" id="tech-kv"></div>
+    <div class="tbl-wrap" id="tech-verif"></div>
+    <p class="fine">Scores compare forecast storm areas (radar reflectivity ≥ 35 dBZ) with later observations. CSI = critical success index, POD = probability of detection, FAR = false alarm ratio, Persistence = CSI of a “no movement” forecast.</p>
+  </details>
+
+  <p class="disclaimer">Guidance only — always follow official IMD warnings.</p>
+</main>
+
+<script src="static/config.js"></script>
+<script src="static/pages.js"></script>
+<script>
+(() => {
+  "use strict";
+  BB.nav("system");
+  const $ = (id) => document.getElementById(id), esc = BB.esc;
+  const KIND = { radar: { ico: "📡", name: "Weather radar", t: "t-green" }, satellite: { ico: "🛰️", name: "Satellite", t: "t-indigo" }, lightning: { ico: "⚡", name: "Lightning sensors", t: "t-amber" } };
+  const STATUS = { OK: "OK", STALE: "Delayed", DOWN: "Offline", WAITING: "Waiting" };
+  const SPEEDS = [[1, "1×"], [5, "5×"], [10, "10×"], [30, "30×"], [60, "60×"], [0, "⏸ Paused"]];
+  let meta = null, sum = null, health = [], speed = null, warming = false, lost = false, lastMsg = Date.now();
+  const pending = new Set();          // feed ids with an outage/restore request in flight
+  // feed id -> enabled flag we asked for. A switched-off feed keeps reporting "OK" until its data
+  // goes stale (minutes), so remember the request until the reported status catches up.
+  const want = new Map();
+
+  const isSim = () => !!meta && meta.mode === "simulated";
+  const ago = (t) => {
+    if (t == null) return "No data yet";
+    const s = Math.max(0, BB.now() - t);
+    if (s < 60) return "Just now";
+    if (s < 5400) return Math.round(s / 60) + " min ago";
+    return (s / 3600).toFixed(1) + " h ago";
+  };
+  const every = (s) => s >= 120 ? `every ${Math.round(s / 60)} min` : `every ${Math.round(s)} s`;
+  const pct = (v) => v == null || !isFinite(v) ? null : Math.round(v * 100);   // server scores are 0–1 fractions
+  const dur = (s) => s < 90 ? Math.round(s) + " s" : s < 5400 ? Math.round(s / 60) + " min" : (s / 3600).toFixed(1) + " h";
+  const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+  // ---------------------------------------------------------- hero
+  function drawHero() {
+    const h = health || [], el = $("hero");
+    const cnt = (s) => h.filter((x) => x.status === s).length;
+    const ok = cnt("OK"), down = cnt("DOWN"), stale = cnt("STALE"), waiting = cnt("WAITING");
+    const radars = h.filter((x) => x.kind === "radar");
+    const radarOut = radars.length && !radars.some((x) => x.status === "OK") && radars.some((x) => x.status === "DOWN" || x.status === "STALE");
+    let tone, ico, title, sub;
+    if (!meta || lost) { tone = "bad"; ico = "🔌"; title = "Can’t reach the forecast server"; sub = "We’ll keep trying to reconnect. Information on this page may be out of date."; }
+    else if (!h.length) { tone = "wait"; ico = "⏳"; title = "Checking data feeds…"; sub = "Waiting for the first status report."; }
+    else if (radarOut) { tone = "bad"; ico = "📡"; title = "Radar offline — forecast is less reliable";
+      sub = "The system is using satellite and lightning data to fill the gap. Storm positions and strengths may be less exact until radar returns."; }
+    else if (down + stale) { tone = "warn"; ico = "⚠️";
+      title = down ? `${plural(down + stale, "feed")} ${down + stale === 1 ? "is" : "are"} offline or delayed` : `${plural(stale, "feed")} delayed`;
+      sub = "The forecast is still running on the other feeds, but may be slightly less accurate in some areas."; }
+    else if (ok === h.length) { tone = "ok"; ico = "✅"; title = `All ${h.length} data feeds working`; sub = warming ? "Warming up — the first forecast will appear shortly." : "Data is arriving on time and the forecast is up to date."; }
+    else if (ok) { const most = ok * 2 > h.length; tone = most ? "partial" : "wait"; ico = most ? "📶" : "⏳"; title = `${ok} of ${h.length} data feeds working`;
+      sub = `${plural(waiting, "feed")} not connected yet — the forecast runs fine on the feeds that are working.`; }
+    else { tone = "wait"; ico = "⏳"; title = "Waiting for the first data"; sub = "The feeds are connected but haven’t delivered any data yet. This can take a few minutes after start-up."; }
+    if (warming && tone !== "bad") sub = "Starting up — the system is building its first forecast. " + (tone === "ok" ? "" : sub);
+    el.className = "hero reveal in " + tone;
+    $("hero-ico").textContent = ico; $("hero-sub").textContent = sub;
+    const TAG = { ok: "Healthy", partial: "Partly connected", wait: "Starting up", warn: "Degraded", bad: "Problem" };
+    $("hero-title").innerHTML = esc(title) + ` <span class="tone-tag">${TAG[tone]}</span>`;
+
+    const fact = (k, v, s) => `<div class="fact"><small>${k}</small><b>${v}</b>${s ? `<span>${s}</span>` : ""}</div>`;
+    const mode = !meta ? "—" : isSim() ? "Demo" : meta.mode === "realtime" ? "Live data" : meta.mode === "browser" ? "Browser mode" : esc(meta.mode || "Live");
+    const modeSub = !meta ? "" : isSim() ? "Simulated storms" : meta.mode === "browser" ? "Weather-model forecast, no engine" : "Real observations";
+    $("hero-facts").innerHTML = fact("Mode", mode, modeSub)
+      + fact("Last analysis", sum ? BB.fmtIST(sum.time) + " IST" : "—", sum ? ago(sum.time).replace("Just now", "just now") : "not yet")
+      + fact("Compute time", sum && sum.stats ? (+sum.stats.cycle_s).toFixed(1) + " s" : "—", "per forecast update")
+      + fact("Feeds working", `${ok} / ${h.length || "—"}`, down + stale ? `${down + stale} with problems` : "");
+  }
+
+  // ---------------------------------------------------------- feeds
+  function drawFeeds() {
+    const box = $("feeds");
+    $("outage-note").classList.toggle("hidden", !isSim() || !health.length);
+    if (!health.length) {
+      if (!meta) box.innerHTML = `<div class="card empty" style="grid-column:1/-1"><div class="big">🔌</div>Can’t reach the forecast server right now — feed status will appear when it reconnects.</div>`;
+      return;
+    }
+    const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.src : null;
+    box.innerHTML = health.map((h) => {
+      const k = KIND[h.kind] || { ico: "📶", name: "Data feed", t: "t-sky" }, st = STATUS[h.status] ? h.status : "WAITING";
+      const bad = h.status === "DOWN" || h.status === "STALE", busy = pending.has(h.id);
+      // forget our request once the reported status agrees with it
+      if (want.has(h.id) && (want.get(h.id) ? h.status === "OK" : bad)) want.delete(h.id);
+      const off = want.has(h.id) ? !want.get(h.id) : bad;
+      const flag = !want.has(h.id) ? "" : want.get(h.id)
+        ? `<span class="feed-flag">↺ Restored — waiting for its next data delivery.</span>`
+        : `<span class="feed-flag">⏻ Outage simulated — status will turn “Delayed” once the data is overdue (~${dur(1.6 * (h.cadence_s || 60) + 60)} of demo time).</span>`;
+      const btn = isSim() ? `<button class="btn sm ${off ? "restore" : "danger"}" data-src="${esc(h.id)}" data-en="${off ? 1 : 0}" ${busy ? "disabled" : ""}
+          aria-label="${off ? "Restore" : "Simulate an outage of"} ${esc(h.label)}">
+          ${busy ? "Working…" : off ? "↺ Restore" : "⏻ Simulate outage"}</button>` : "";
+      return `<article class="card feed lift ${k.t}">
+        <div class="feed-top"><div class="feed-ico ico-tile" aria-hidden="true">${k.ico}</div>
+          <div class="feed-name"><b>${k.name}</b><span>${esc(h.label)}</span></div>
+          <span class="pill ${st}"><i></i>${STATUS[st]}</span></div>
+        <div class="feed-rows">
+          <div><small>Last data</small><b>${ago(h.last_obs_time)}</b></div>
+          <div title="How long data takes to reach us after it was observed"><small>Delay in arriving</small><b class="mono">${h.last_obs_time == null ? "—" : dur(+h.latency_s || 0)}</b></div>
+        </div>
+        ${flag}
+        <div class="feed-foot"><span class="fine">Updates ${every(h.cadence_s || 60)}${h.count ? ` · ${esc(h.count)} received` : ""}${h.rejected ? ` · ${esc(h.rejected)} rejected` : ""}${h.qc ? `<br>Quality check: ${esc(h.qc)}` : ""}</span>${btn}</div>
+      </article>`;
+    }).join("");
+    box.querySelectorAll("button[data-src]").forEach((b) => {
+      b.onclick = () => {
+        const id = b.dataset.src, en = b.dataset.en === "1"; pending.add(id); drawFeeds();
+        BB.post("/api/sim/source", { source_id: id, enabled: en })
+          .then((r) => { if (r && r.ok) want.set(id, en); })
+          .catch(() => {}).finally(() => { pending.delete(id); drawFeeds(); });
+      };
+      if (focused && b.dataset.src === focused) b.focus();
+    });
+  }
+
+  // ---------------------------------------------------------- demo controls
+  let speedKey = "";
+  function drawSpeeds() {
+    $("demo-sec").classList.toggle("hidden", !isSim());
+    if (!isSim()) return;
+    const key = speed + "|" + warming;
+    if (key === speedKey) return;
+    speedKey = key;
+    $("speeds").innerHTML = SPEEDS.map(([v, l]) => `<button class="chip-btn ${speed === v ? "on" : ""}" data-v="${v}" aria-pressed="${speed === v}" ${warming ? "disabled" : ""}>${l}</button>`).join("");
+    $("speed-help").textContent = warming ? "Speed can be changed once the system has finished starting up." : "How many seconds of storm time pass for every real second.";
+    $("speeds").querySelectorAll("button").forEach((b) => b.onclick = () => {
+      const v = +b.dataset.v, t = BB.now();
+      BB.post("/api/sim/speed", { speed: v }).then((r) => { BB.sync({ sim_now: t + 0, speed: r.speed }); speed = r.speed; drawSpeeds(); }).catch(() => {});
+    });
+  }
+  setInterval(() => {
+    // the server sends a tick every 2 s; if nothing arrives for 15 s, say so instead of showing stale "all OK"
+    const wasLost = lost; lost = !!meta && Date.now() - lastMsg > 15000;
+    if (lost !== wasLost) { drawHero(); stamp(); }
+    if (!isSim()) return;
+    const t = BB.now();
+    $("clock").textContent = t > 1e6 ? BB.fmtIST(t, true) : "--:--:--";
+    $("clock-speed").textContent = speed == null ? "" : speed === 0 ? "Paused" : speed === 1 ? "Real time" : `Running ${speed}× faster than real time`;
+  }, 250);
+
+  // ---------------------------------------------------------- accuracy
+  function bar(label, val, color, hint, cls = "") {
+    const w = val == null ? 0 : Math.min(100, Math.max(0, val));
+    return `<div class="bar ${cls}" style="--bc:${color}" title="${esc(hint)}"><div class="bar-lab"><span>${label}</span><b>${val == null ? "—" : val + "%"}</b></div>
+      <div class="bar-track"><div class="bar-fill" data-w="${w}"></div></div></div>`;
+  }
+  let accKey = null;
+  function drawAccuracy() {
+    const v = (sum && sum.verification) || {};
+    // only rebuild when the scores change, so the bars don't re-animate from zero every cycle
+    const key = JSON.stringify([v, sum && sum.ci_lead_mean_min, sum && sum.ci_verified_n]);
+    if (key === accKey) return;
+    accKey = key;
+    const LT = { "30": "t-sky", "60": "t-indigo", "120": "t-teal" };
+    $("acc").innerHTML = ["30", "60", "120"].map((L) => {
+      const x = v[L], head = `<h3><span class="lead-tag">${L === "120" ? "2 hours" : L + " minutes"} ahead</span> <small>${x && x.n ? plural(x.n, "check") : ""}</small></h3>`;
+      if (!x) return `<div class="card acc lift ${LT[L]}">${head}<div class="collecting"><div><div class="big" aria-hidden="true">⏳</div>Collecting results…<br><span class="fine">Scores appear once enough forecasts have come true or not.</span></div></div></div>`;
+      const csi = pct(x.csi), base = pct(x.csi_persistence), better = csi != null && base != null && csi > base;
+      return `<div class="card acc lift ${LT[L]}">${head}
+        <div class="score"><b>${csi == null ? "—" : csi + "%"}</b><span>overall score</span></div>
+        ${bar("Hit rate — storms we caught", pct(x.pod), "var(--ok)", "Out of all storms that happened, how many the forecast predicted. Higher is better.")}
+        ${bar("False alarms — warned but nothing came", pct(x.far), "var(--c-rose)", "Out of all forecast storms, how many didn’t happen. Lower is better.")}
+        ${bar("Our forecast (overall score)", csi, "var(--brand)", "Combines hits, misses and false alarms. Higher is better.", "score-bar")}
+        ${bar("“Storm doesn’t move” guess", base, "var(--c-slate)", "Score of a simple forecast that assumes storms stay where they are.")}
+        ${base == null || csi == null ? "" : `<div class="verdict ${better ? "good" : "meh"}">${better ? `✓ ${csi - base} points better than the simple guess` : "≈ Not yet beating the simple guess"}</div>`}</div>`;
+    }).join("");
+    requestAnimationFrame(() => document.querySelectorAll(".bar-fill").forEach((f) => { f.style.width = f.dataset.w + "%"; }));
+
+    const lead = sum ? sum.ci_lead_mean_min : null, n = sum ? sum.ci_verified_n : 0;
+    $("ci").innerHTML = `<span class="big ico-tile t-green" aria-hidden="true">🌱</span><div><b>Early warning for brand-new storms</b>
+      <p style="margin:4px 0 0;color:var(--text-2)">${lead == null
+        ? "Still collecting — this shows how much warning we gave before new storms appeared on radar."
+        : `On average we spotted new storms <b class="n">${esc(Math.round(+lead))} min</b> before they showed up on radar <span class="fine">(based on ${plural(+n || 0, "storm")})</span>.`}</p></div>`;
+  }
+
+  // ---------------------------------------------------------- tiles
+  function drawTiles() {
+    if (!sum) return;
+    const i = sum.inputs || {}, st = sum.stats || {};
+    const nr = Array.isArray(i.radars) ? i.radars.length : (i.radars ?? "—");
+    const tile = (ico, k, v, p, t) => `<div class="card tile lift ${t}" title="${esc(p)}"><span class="t-ico ico-tile" aria-hidden="true">${ico}</span><small>${k}</small><b>${esc(v)}</b><p>${p}</p></div>`;
+    const pc = (x) => x == null ? "—" : Math.round(+x) + "%";
+    $("tiles").innerHTML =
+        tile("⛈️", "Storms tracked", st.n_cells ?? "—", "Separate storm cells being followed right now.", "t-indigo")
+      + tile("📡", "Radars combined", nr, "Radar stations merged into one picture.", "t-green")
+      + tile("🎯", "Radar coverage", pc(i.radar_coverage_pct), "Share of the map that radar can see directly.", "t-teal")
+      + tile("🛰️", "Satellite gap-fill", pc(i.proxy_pct), "Share of the map estimated from satellite + lightning instead.", "t-indigo")
+      + tile("🕒", "Satellite image age", i.satellite_age_s == null ? "No image" : dur(+i.satellite_age_s), "How old the latest satellite picture is.", "t-sky")
+      + tile("⚡", "Lightning / 10 min", i.flashes_10min ?? "—", "Lightning flashes detected in the last 10 minutes.", "t-amber")
+      + tile("🧭", "Motion vectors", st.motion_vectors ?? "—", "Wind-like arrows used to work out where storms are heading.", "t-sky")
+      + tile("⏱️", "Update time", st.cycle_s == null ? "—" : (+st.cycle_s).toFixed(1) + " s", "How long the computer takes to produce each new forecast.", "t-teal");
+  }
+
+  // ---------------------------------------------------------- technical
+  function drawTech() {
+    const kv = (k, v) => `<div><span>${k}</span><span class="mono">${esc(v)}</span></div>`;
+    let h = "";
+    if (meta) h += kv("Mode", meta.mode) + kv("Grid spacing", `${meta.dx_km} × ${meta.dy_km} km`) + kv("Forecast leads", (meta.leads || []).length + " steps to +" + ((meta.leads || []).slice(-1)[0] ?? "—") + " min");
+    if (sum) {
+      const i = sum.inputs || {};
+      h += kv("Analysis time", BB.fmtIST(sum.time, true) + " IST") + kv("Cycle", sum.cycle ?? "—") + kv("Max level now", BB.LEVELS[(sum.stats || {}).max_level_now] || "—")
+        + kv("Radars", Array.isArray(i.radars) && i.radars.length ? i.radars.join(", ") : "none")
+        + kv("New storms watched", (sum.ci || []).length) + kv("Events logged", (sum.events || []).length);
+    }
+    $("tech-kv").innerHTML = h;
+    const v = (sum && sum.verification) || {};
+    const rows = Object.entries(v).map(([L, x]) => x
+      ? `<tr><td>+${esc(L)} min</td><td>${esc(x.csi)}</td><td>${esc(x.pod)}</td><td>${esc(x.far)}</td><td>${esc(x.csi_persistence)}</td><td>${esc(x.n ?? "")}</td></tr>`
+      : `<tr><td>+${esc(L)} min</td><td colspan="5" style="text-align:center;color:var(--muted)">collecting…</td></tr>`).join("");
+    $("tech-verif").innerHTML = rows ? `<table class="vt"><tr><th>Lead</th><th>CSI</th><th>POD</th><th>FAR</th><th>Persist.</th><th>n</th></tr>${rows}</table>` : "";
+  }
+
+  function stamp() {
+    $("updated").textContent = (!meta || lost) ? "Server offline — retrying…" : sum ? `Updated ${BB.fmtIST(sum.time)} IST` : "Waiting for first forecast…";
+  }
+  function drawAll() { drawHero(); drawFeeds(); drawSpeeds(); drawAccuracy(); drawTiles(); drawTech(); stamp(); }
+
+  // ---------------------------------------------------------- entrance animation
+  const reveals = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { threshold: 0.08 });
+    reveals.forEach((r) => io.observe(r));
+  } else reveals.forEach((r) => r.classList.add("in"));
+
+  // ---------------------------------------------------------- live data
+  drawAccuracy();
+  BB.live({
+    onCycle(s, m) { lastMsg = Date.now(); lost = false; meta = m; sum = s; health = s.health || []; if (s.speed != null) speed = s.speed; warming = false; drawAll(); },
+    onPending(st, m) { lastMsg = Date.now(); meta = m; health = st.health || []; warming = !!st.warming_up; drawAll(); },
+    onTick(m) {
+      lastMsg = Date.now(); lost = false;
+      if (m.health) health = m.health;
+      if (m.speed != null) speed = m.speed;
+      warming = !!m.warming_up;
+      drawHero(); drawFeeds(); drawSpeeds(); stamp();
+    },
+  }).then((m) => {
+    meta = m; lastMsg = Date.now(); drawAll();
+    // BB.live only opens the websocket when the server answered; if it didn't, retry by reloading
+    if (!m) setTimeout(() => location.reload(), 15000);
+  });
+})();
+</script>
+</body>
+</html>

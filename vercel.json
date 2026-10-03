@@ -1,9 +1,41 @@
-﻿{
+{
   "version": 2,
   "rewrites": [
-    { "source": "/app", "destination": "/frontend/app.html" },
-    { "source": "/dashboard", "destination": "/frontend/app.html" },
-    { "source": "/static/(.*)", "destination": "/frontend/static/$1" },
-    { "source": "/(.*)", "destination": "/frontend/$1" }
+    {
+      "source": "/app",
+      "destination": "/frontend/app.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/frontend/app.html"
+    },
+    {
+      "source": "/arrivals",
+      "destination": "/frontend/arrivals.html"
+    },
+    {
+      "source": "/alerts",
+      "destination": "/frontend/alerts.html"
+    },
+    {
+      "source": "/hazards",
+      "destination": "/frontend/hazards.html"
+    },
+    {
+      "source": "/assistant",
+      "destination": "/frontend/assistant.html"
+    },
+    {
+      "source": "/system",
+      "destination": "/frontend/system.html"
+    },
+    {
+      "source": "/static/(.*)",
+      "destination": "/frontend/static/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
+    }
   ]
 }

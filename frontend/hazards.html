@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hazards — BUMBLEBLE</title>
+<meta name="description" content="Plain-language guide to every storm hazard and map layer in BUMBLEBLE, with live conditions and safety tips.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/pages.css">
+<style>
+  html { scroll-behavior: smooth; scroll-padding-top: 128px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  /* hero */
+  /* per-section identity colours (decorative only; danger levels keep --l1..--l4) */
+  [data-hz] { --acc: var(--brand); --acc-ink: #fff; }
+  [data-hz="level"]      { --acc: #a78bfa; --acc-ink: #1e1048; }
+  [data-hz="level_60"]   { --acc: #f472b6; --acc-ink: #4a0d2b; }
+  [data-hz="level_360"]  { --acc: #818cf8; --acc-ink: #1e1b4b; }
+  [data-hz="lightning"]  { --acc: #facc15; --acc-ink: #3b2f00; }
+  [data-hz="hail"]       { --acc: #c084fc; --acc-ink: #2e1065; }
+  [data-hz="gust"]       { --acc: #fb923c; --acc-ink: #431407; }
+  [data-hz="cloudburst"] { --acc: #60a5fa; --acc-ink: #0b1d4a; }
+  [data-hz="rain1h"]     { --acc: #38bdf8; --acc-ink: #082f49; }
+  [data-hz="dbz"]        { --acc: #4ade80; --acc-ink: #052e16; }
+  [data-hz="ir"]         { --acc: #94a3b8; --acc-ink: #0f172a; }
+  [data-hz="qpe1h"]      { --acc: #22d3ee; --acc-ink: #083344; }
+  [data-hz="confidence"] { --acc: #2dd4bf; --acc-ink: #042f2e; }
+  [data-theme="light"] [data-hz="level"]      { --acc: #7c3aed; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="level_60"]   { --acc: #db2777; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="level_360"]  { --acc: #4f46e5; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="lightning"]  { --acc: #ca8a04; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="hail"]       { --acc: #9333ea; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="gust"]       { --acc: #ea580c; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="cloudburst"] { --acc: #2563eb; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="rain1h"]     { --acc: #0284c7; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="dbz"]        { --acc: #16a34a; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="ir"]         { --acc: #475569; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="qpe1h"]      { --acc: #0891b2; --acc-ink: #fff; }
+  [data-theme="light"] [data-hz="confidence"] { --acc: #0d9488; --acc-ink: #fff; }
+
+  .hz-hero { position: relative; overflow: hidden; border-radius: 22px; padding: 30px 26px; margin-bottom: 18px;
+    background:
+      radial-gradient(70% 120% at 0% 0%, color-mix(in srgb, var(--brand) 22%, transparent), transparent 65%),
+      radial-gradient(60% 120% at 100% 100%, color-mix(in srgb, var(--brand-2) 16%, transparent), transparent 65%),
+      linear-gradient(135deg, color-mix(in srgb, var(--surface) 90%, var(--brand) 10%), var(--surface));
+    border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--line));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 14px 40px color-mix(in srgb, var(--brand) 12%, transparent); }
+  .hz-hero::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+    background: linear-gradient(90deg, var(--brand), var(--brand-2), #38bdf8, #facc15); opacity: .85; }
+  .hz-eyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 4px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: color-mix(in srgb, var(--brand) 75%, var(--text)); background: var(--brand-soft);
+    border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent); }
+  .hz-hero h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); letter-spacing: -.03em; line-height: 1.12; padding-bottom: 2px;
+    background: linear-gradient(100deg, var(--text) 25%, color-mix(in srgb, var(--brand) 80%, var(--text)) 65%, var(--brand-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hz-hero p { margin: 10px 0 0; color: var(--text-2); max-width: 720px; font-size: 16px; }
+  .hz-hero .hz-now { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .hz-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+    background: color-mix(in srgb, var(--surface-2) 80%, transparent); backdrop-filter: blur(6px);
+    border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--line)); font-size: 13.5px; font-weight: 600; color: var(--text-2); }
+  .hz-pill b { color: var(--text); }
+
+  /* sticky jump menu */
+  .hz-jump { position: sticky; top: 60px; z-index: 50; margin: 0 -16px 8px; padding: 10px 16px;
+    background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft); }
+  .hz-jump .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .hz-jump .chips::-webkit-scrollbar { display: none; }
+  .hz-jump .chip-btn { white-space: nowrap; flex: none; display: inline-flex; gap: 6px; align-items: center; min-height: 38px; }
+  .hz-jump .sep { flex: none; width: 1px; background: var(--line); margin: 4px 4px; }
+  .hz-jump .chip-btn .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--acc);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 22%, transparent); }
+  .hz-jump .chip-btn:hover { border-color: color-mix(in srgb, var(--acc) 60%, var(--line)); background: color-mix(in srgb, var(--acc) 10%, var(--surface-2)); }
+  .hz-jump .chip-btn.on { color: #fff; }
+  .hz-jump .chip-btn.on .dot { background: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, .3); }
+
+  /* groups */
+  .hz-group { margin-top: 38px; }
+  .hz-group > h2 { margin: 0; font-size: 22px; letter-spacing: -.02em; display: flex; align-items: center; gap: 10px; }
+  .hz-group > h2::before { content: ""; width: 6px; height: 22px; border-radius: 99px; flex: none;
+    background: linear-gradient(180deg, var(--brand), var(--brand-2)); }
+  .hz-group > .g-sub { margin: 4px 0 16px 16px; color: var(--text-2); }
+
+  /* section card */
+  .hz-card { position: relative; display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 22px;
+    padding: 22px 22px 22px 26px; margin-bottom: 16px; border-radius: 20px;
+    background:
+      radial-gradient(60% 80% at 0% 0%, color-mix(in srgb, var(--acc) 10%, transparent), transparent 70%),
+      linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, var(--acc) 6%), var(--surface));
+    border: 1px solid color-mix(in srgb, var(--acc) 16%, var(--line));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), var(--shadow-sm);
+    transition: border-color .2s, box-shadow .2s, transform .2s; overflow: hidden; }
+  .hz-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px;
+    background: linear-gradient(180deg, var(--acc), color-mix(in srgb, var(--acc) 35%, transparent)); }
+  .hz-card:hover { border-color: color-mix(in srgb, var(--acc) 50%, var(--line));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 12px 34px color-mix(in srgb, var(--acc) 16%, transparent); }
+  .hz-top { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+  .hz-ico { width: 56px; height: 56px; flex: none; border-radius: 16px; display: grid; place-items: center; font-size: 28px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--acc) 26%, var(--surface-2)), color-mix(in srgb, var(--acc) 8%, var(--surface-2)));
+    border: 1px solid color-mix(in srgb, var(--acc) 40%, var(--line));
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--acc) 18%, transparent); }
+  .hz-top h3 { margin: 0; font-size: 21px; letter-spacing: -.02em; line-height: 1.2; }
+  .hz-top .tag { color: color-mix(in srgb, var(--acc) 40%, var(--text-2)); font-size: 13px; font-weight: 500; margin-top: 2px; }
+  .hz-q { margin: 18px 0 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: color-mix(in srgb, var(--acc) 40%, var(--text-2)); display: flex; align-items: center; gap: 8px; }
+  .hz-q::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, var(--acc) 30%, transparent), transparent); }
+  .hz-card p { margin: 0; color: var(--text-2); }
+  .hz-who { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .hz-who span { font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+    background: color-mix(in srgb, var(--acc) 10%, var(--surface-2)); border: 1px solid color-mix(in srgb, var(--acc) 24%, var(--line)); color: var(--text-2); }
+
+  /* colour bar */
+  .hz-bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); margin-top: 4px; }
+  .hz-bar span { flex: 1; }
+  .hz-ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; gap: 8px; }
+  .hz-ticks span:nth-child(2) { text-align: center; } .hz-ticks span:last-child { text-align: right; }
+  .hz-levels { display: grid; gap: 8px; margin-top: 4px; }
+  .hz-lv { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: center; font-size: 14px; color: var(--text-2); }
+  .hz-lv .lvl { text-align: center; padding: 4px 8px; }
+
+  /* right now */
+  .hz-now-box { margin-top: 16px; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line);
+    display: flex; gap: 14px; align-items: center; }
+  .hz-now-box .big { font-size: 26px; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; }
+  .hz-now-box .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .hz-now-box .lbl i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 var(--ok); animation: hzPulse 2s infinite; }
+  .hz-now-box .txt { color: var(--text); font-size: 14px; margin-top: 2px; }
+  .hz-now-box.warn { border-color: color-mix(in srgb, var(--l2) 50%, var(--line)); background: color-mix(in srgb, var(--l2) 8%, var(--surface-2)); }
+  .hz-now-box.bad { border-color: color-mix(in srgb, var(--l3) 55%, var(--line)); background: color-mix(in srgb, var(--l3) 9%, var(--surface-2)); }
+  @keyframes hzPulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+  /* tips */
+  .hz-tips { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
+  .hz-tips li { display: flex; gap: 10px; align-items: flex-start; color: var(--text-2); font-size: 14.5px; }
+  .hz-tips li::before { content: "✓"; flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800;
+    color: var(--acc-ink, #fff); background: var(--acc, var(--brand)); margin-top: 1px; }
+
+  /* right column */
+  .hz-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .hz-prev { position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 4 / 3; background: #0a1220;
+    border: 1px solid var(--line); display: grid; place-items: center; }
+  .hz-prev img { width: 100%; height: 100%; object-fit: contain; display: block; transition: opacity .4s; }
+  .hz-prev .ph { position: absolute; inset: 0; display: grid; place-items: center; color: #71839b; font-size: 13px; text-align: center; padding: 16px; }
+  .hz-prev.has-img .ph { display: none; }
+  .hz-prev:not(.has-img) img { visibility: hidden; }
+  .hz-prev figcaption { position: absolute; left: 10px; top: 10px; display: inline-flex; gap: 6px; align-items: center; font-size: 11.5px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px; background: rgba(7, 12, 22, .75); color: #e6edf7; border: 1px solid rgba(255, 255, 255, .12); }
+  .hz-prev figcaption i { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+  .hz-side .btn { justify-content: center; }
+  details.hz-tech { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+  details.hz-tech summary { cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--text-2); list-style: none; display: flex; justify-content: space-between; }
+  details.hz-tech summary::-webkit-details-marker { display: none; }
+  details.hz-tech summary::after { content: "+"; font-weight: 800; }
+  details.hz-tech[open] summary::after { content: "–"; }
+  details.hz-tech .in { padding: 0 14px 12px; font-size: 13px; color: var(--text-2); }
+  details.hz-tech .in div { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-top: 1px dashed var(--line-soft); }
+  details.hz-tech .in div span:last-child { text-align: right; overflow-wrap: anywhere; }
+
+  /* entrance */
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .55s ease, transform .55s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .hz-card, .hz-prev img { transition: none; }
+    .hz-now-box .lbl i { animation: none; }
+  }
+
+  @media (max-width: 860px) { .hz-card { grid-template-columns: minmax(0, 1fr); } .hz-prev { aspect-ratio: 16 / 10; } }
+  @media (max-width: 600px) {
+    .hz-hero { padding: 22px 18px; }
+    .hz-card { padding: 18px 16px 18px 18px; gap: 16px; }
+    .hz-ico { width: 48px; height: 48px; font-size: 24px; border-radius: 14px; }
+    .hz-top h3 { font-size: 19px; }
+    .hz-lv { grid-template-columns: 84px minmax(0, 1fr); font-size: 13.5px; }
+    .hz-now-box { flex-direction: column; align-items: flex-start; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="hz-hero">
+    <span class="hz-eyebrow">Hazard guide · live</span>
+    <h1>Storm hazards, explained simply</h1>
+    <p>Each map layer is explained below in plain words: what it shows, who should care, what the colours mean, what is happening now, and how to stay safe.</p>
+    <div class="hz-now" id="hz-now"><span class="hz-pill">Loading live conditions…</span></div>
+  </section>
+
+  <nav class="hz-jump" aria-label="Jump to a hazard"><div class="chips" id="hz-chips"></div></nav>
+
+  <div id="hz-body"></div>
+
+  <p class="disclaimer">Guidance only — always follow official IMD warnings.</p>
+</main>
+
+<script src="static/config.js"></script>
+<script src="static/pages.js"></script>
+<script>
+(() => {
+  "use strict";
+  BB.nav("hazards");
+  const esc = BB.esc;
+
+  const GROUPS = [
+    { key: "overview", title: "Danger overview", sub: "Start here. These combine every hazard into one simple danger level.", items: ["level", "level_60", "level_360"] },
+    { key: "hazards", title: "Individual hazards", sub: "Look at one danger at a time: lightning, hail, wind, cloudburst or rain.", items: ["lightning", "hail", "gust", "cloudburst", "rain1h"] },
+    { key: "sensors", title: "What sensors see (advanced)", sub: "The raw observations behind the forecast. Useful if you want to look closer.", items: ["dbz", "ir", "qpe1h", "confidence"] },
+  ];
+
+  // plain-language content per map layer
+  const INFO = {
+    level: { ico: "⚠️", name: "Overall storm danger", tag: "All hazards combined — start here", legend: "level",
+      what: "One simple danger level for every spot on the map, combining lightning, hail, wind and heavy rain. It runs from Low (yellow) to Extreme (purple).",
+      why: "If you only look at one layer, look at this one. It tells you whether you need to do anything at all.",
+      who: ["Everyone", "District officials", "Event organisers"],
+      tips: ["Check the map for your location before travelling or working outdoors.", "Orange or worse: plan to be indoors when the storm arrives.", "Red or purple: get inside a strong building before it arrives.", "Keep your phone charged and follow official IMD warnings."] },
+    level_60: { ico: "⏱️", name: "Worst in the next hour", tag: "Highest danger expected anywhere in the next 60 minutes", legend: "level",
+      what: "For each spot, the highest danger level expected at any moment during the next hour. It shows everywhere a storm may reach soon.",
+      why: "Good for short trips, spraying crops, outdoor work shifts or a match that ends within the hour.",
+      who: ["Farmers", "Commuters", "Outdoor workers", "Airport ground staff"],
+      tips: ["If your area is coloured, finish outdoor tasks early.", "Bring in tools, laundry and loose items now.", "Move vehicles out from under trees.", "Know where your nearest shelter is."] },
+    level_360: { ico: "🗓️", name: "Worst in the next 6 hours", tag: "Highest danger expected anywhere in the next 6 hours", legend: "level",
+      what: "For each spot, the highest danger level expected at any time in the next six hours. Forecasts further ahead are less certain, so treat it as a heads-up.",
+      why: "Helps plan the rest of the day: harvests, travel, events and staff duty.",
+      who: ["District officials", "Farmers", "Event planners", "Airport operations"],
+      tips: ["Use it to plan, not to panic — check again closer to the time.", "Reschedule harvests or spraying if your area turns orange or red.", "Alert staff and volunteers early if a big event is planned.", "Check the 1-hour layer as the time approaches."] },
+    lightning: { ico: "⚡", name: "Lightning", tag: "How often lightning strikes", legend: "lightning",
+      what: "How often lightning is striking or is expected to strike in each area. Brighter colours mean more strikes.",
+      why: "Lightning kills more people in India than any other storm hazard, mostly people working in open fields.",
+      who: ["Farmers and field workers", "Fishermen", "Shepherds", "Sports and outdoor events"],
+      tips: ["30-30 rule: if thunder comes less than 30 seconds after the flash, go indoors. Wait 30 minutes after the last thunder.", "Never shelter under a lone tree or in an open hut.", "Get out of water, ponds and fields; stay away from metal fences and poles.", "If caught outside, crouch low on the balls of your feet — do not lie flat."] },
+    hail: { ico: "🧊", name: "Hail", tag: "Chance of hailstones", legend: "hail",
+      what: "The chance that hailstones (balls of ice) will fall in each area. It is shown as a percentage from 5% to 100%.",
+      why: "Hail can flatten crops, break windows and car glass, and hurt people and animals within minutes.",
+      who: ["Farmers and orchard owners", "Vehicle owners", "Livestock keepers", "Airports"],
+      tips: ["Park vehicles under cover or put a thick blanket over them.", "Bring livestock into sheds.", "Cover nurseries and sensitive crops with nets or sheets if possible.", "Stay indoors and away from windows until it stops."] },
+    gust: { ico: "🌪️", name: "Strong winds (downbursts)", tag: "Sudden gusts from storms", legend: "gust",
+      what: "Sudden, powerful gusts of wind that rush down and out of a storm. They can arrive before the rain and are strong enough to topple trees.",
+      why: "Falling trees, hoardings, poles and loose tin roofs injure many people during storms.",
+      who: ["Everyone outdoors", "Two-wheeler riders", "Construction sites", "Airports and pilots"],
+      tips: ["Stay away from hoardings, big trees, electric poles and walls.", "Do not stand under tin or asbestos roofs; secure loose sheets beforehand.", "Avoid riding two-wheelers in strong gusts.", "Tie down or bring in loose objects, tents and stalls."] },
+    cloudburst: { ico: "🌧️", name: "Cloudburst", tag: "Chance of extreme rain (100 mm or more in an hour)", legend: "cloudburst",
+      what: "The chance of an extremely intense downpour — 100 mm of rain or more in one hour over a small area. That much water can cause flash floods within minutes.",
+      why: "Flash floods and landslides from cloudbursts strike fast, especially in hills and low-lying areas.",
+      who: ["Hill residents", "Pilgrims and trekkers", "Low-lying neighbourhoods", "District disaster teams"],
+      tips: ["Keep away from streams, rivers, drains and dry riverbeds.", "Move to higher ground if you live in low-lying areas.", "On hillsides, watch for falling rocks and mud; avoid travel on steep roads.", "Never walk or drive through flowing water."] },
+    rain1h: { ico: "💧", name: "Rain in the next hour", tag: "Expected rainfall over the next 60 minutes", legend: "rain1h",
+      what: "How much rain is expected to fall in each area over the next hour, in millimetres. 10 mm is a good shower; 50 mm or more can flood streets.",
+      why: "Helps decide whether to travel, irrigate, spray or harvest, and warns of waterlogging in cities.",
+      who: ["Farmers", "Commuters", "City drainage teams", "Delivery and transport"],
+      tips: ["Above 25 mm: expect waterlogged roads, allow extra travel time.", "Above 50 mm: avoid underpasses and low roads.", "Skip spraying fertiliser or pesticide — rain will wash it off.", "Clear drains and gutters around your home."] },
+    dbz: { ico: "📡", name: "Weather radar", tag: "Rain and storm strength seen by radar", legend: "dbz",
+      what: "What the weather radars see right now: where rain is falling and how heavy it is. Green is light rain, yellow and red are heavy storms, purple can mean hail.",
+      why: "This is the most direct, up-to-date picture of storms near you.",
+      who: ["Curious users", "Airport staff", "Disaster managers"],
+      tips: ["Red and purple patches are the strongest storm cores — avoid them.", "Watch a few updates to see which way storms are moving.", "No colour does not always mean no rain: radars cannot see everywhere.", "Combine with the Overall danger layer for a simple answer."] },
+    ir: { ico: "🛰️", name: "Satellite clouds", tag: "INSAT-3DR infrared cloud image", legend: "ir",
+      what: "An infrared image from the Indian weather satellite showing how cold the cloud tops are. Colder, taller clouds (bright colours) are usually stronger storms.",
+      why: "The satellite sees everywhere, including places with no radar, and spots storms as they start to grow.",
+      who: ["Curious users", "Remote and hill areas", "Forecasters"],
+      tips: ["Bright, growing blobs often turn into thunderstorms within an hour.", "Satellite images arrive every 15–30 minutes, so they lag slightly.", "Use radar for detail where it is available.", "Grey areas are low, warm clouds — usually harmless."] },
+    qpe1h: { ico: "📈", name: "Rain in the last hour", tag: "Measured rainfall over the past 60 minutes", legend: "qpe1h",
+      what: "How much rain has already fallen in the last hour, in millimetres. It is estimated from radar and satellite.",
+      why: "Shows where the ground is already soaked — those places flood more easily if more rain comes.",
+      who: ["Farmers", "Municipal teams", "Disaster managers"],
+      tips: ["Where lots of rain has fallen, extra rain floods faster.", "Check for waterlogging before driving through known dips.", "Postpone irrigation where the field is already wet.", "On hills, heavy recent rain raises landslide risk."] },
+    confidence: { ico: "🎯", name: "Data confidence", tag: "How reliable the map is in each area", legend: "confidence",
+      what: "How much the forecast can be trusted in each area. Blue and green mean good radar coverage; orange and red mean the map is guessing from satellite only.",
+      why: "In low-confidence areas, treat the map as a rough guide and rely more on official warnings and the sky.",
+      who: ["Everyone checking a remote area", "Officials making decisions"],
+      tips: ["In red or orange areas, stay extra cautious.", "Use your eyes and ears too: dark clouds and thunder mean act now.", "Follow IMD and district warnings first.", "Check back after the next update."] },
+  };
+
+  // plain labels for the colour-bar ends
+  const pct = (v) => Math.round(v * 100) + "%";
+  const TICK = {
+    lightning: (v) => v < 0.3 ? "Rare" : v >= 12 ? "Constant" : v >= 3 ? "Frequent" : "Some",
+    hail: pct, cloudburst: pct,
+    gust: (v) => Math.round(v * 3.6) + " km/h",
+    rain1h: (v) => v + " mm", qpe1h: (v) => v + " mm",
+    dbz: (v) => v < 25 ? "Light" : v >= 60 ? "Hail / extreme" : v >= 45 ? "Heavy" : "Moderate",
+    ir: (v) => Math.round(v - 273) + "°C",
+    confidence: (v) => v < 0.2 ? "Low" : v >= 0.9 ? "High" : "Fair",
+  };
+  const TECH_UNIT = { lightning: "flashes per km² per hour", hail: "probability", gust: "m/s", cloudburst: "probability (≥100 mm/h)",
+    rain1h: "mm", qpe1h: "mm", dbz: "dBZ (radar reflectivity)", ir: "K (brightness temperature)", confidence: "0–1 fusion confidence", level: "composite level 0–4" };
+  const solid = (c) => String(c).replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, "rgb($1,$2,$3)");
+
+  let META = null, SUM = null, CYCLE = 0;
+
+  // ---------- build static sections ----------
+  function legendHTML(id) {
+    const key = INFO[id].legend, lg = META && META.legends ? META.legends[key] : null;
+    if (key === "level") {
+      return `<div class="hz-levels">${[1, 2, 3, 4].map((k) => `<div class="hz-lv"><span class="lvl l${k}">${BB.LEVELS[k]}</span><span>${esc(BB.ADVICE[k])}</span></div>`).join("")}</div>`;
+    }
+    if (!lg || !lg.stops || !lg.stops.length) return `<p class="fine">Colour scale loads with live data.</p>`;
+    const st = lg.stops.slice(), f = TICK[id] || ((v) => v);
+    const ordered = st; // every legend runs weak -> strong (ir: warm -> cold)
+    const mid = ordered[Math.floor(ordered.length / 2)];
+    return `<div class="hz-bar" role="img" aria-label="Colour scale from ${esc(f(ordered[0].v))} to ${esc(f(ordered[ordered.length - 1].v))}">${ordered.map((s) => `<span style="background:${esc(solid(s.c))}"></span>`).join("")}</div>
+      <div class="hz-ticks"><span>${esc(f(ordered[0].v))}</span><span>${esc(f(mid.v))}</span><span>${esc(f(ordered[ordered.length - 1].v))}</span></div>
+      <p class="fine" style="margin-top:6px">Left is weakest, right is strongest. No colour on the map means nothing significant.</p>`;
+  }
+  function techHTML(id) {
+    const key = INFO[id].legend, lg = META && META.legends ? META.legends[key] : null;
+    const rows = [["Layer id", id], ["Scale", TECH_UNIT[key] || "—"]];
+    if (lg && lg.title) rows.push(["Legend", lg.title]);
+    if (lg && lg.stops) rows.push(["Colour steps", lg.stops.map((s) => s.v).join(", ")]);
+    rows.push(["Forecast", id === "level_60" ? "max over 0–60 min" : id === "level_360" ? "max over 0–6 h" : ["ir", "qpe1h", "confidence"].includes(id) ? "observed now" : "0–6 h in 10-min steps"]);
+    return rows.map(([a, b]) => `<div><span>${esc(a)}</span><span class="mono">${esc(b)}</span></div>`).join("");
+  }
+  function cardHTML(id) {
+    const x = INFO[id];
+    return `<article class="hz-card reveal" id="hz-${id}" data-hz="${id}" aria-labelledby="hz-h-${id}">
+      <div>
+        <div class="hz-top"><div class="hz-ico" aria-hidden="true">${x.ico}</div>
+          <div><h3 id="hz-h-${id}">${esc(x.name)}</h3><div class="tag">${esc(x.tag)}</div></div></div>
+        <div class="hz-q">What is it?</div><p>${esc(x.what)}</p>
+        <div class="hz-q">Why it matters · who should care</div><p>${esc(x.why)}</p>
+        <div class="hz-who">${x.who.map((w) => `<span>${esc(w)}</span>`).join("")}</div>
+        <div class="hz-q">How to read the colours</div><div data-legend="${id}">${legendHTML(id)}</div>
+        <div class="hz-now-box" data-now="${id}"><div><div class="lbl"><i></i>Right now</div><div class="txt">Waiting for live data…</div></div></div>
+        <div class="hz-q">Stay safe</div>
+        <ul class="hz-tips">${x.tips.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+      </div>
+      <div class="hz-side">
+        <figure class="hz-prev" style="margin:0"><img alt="Live map preview of ${esc(x.name)}" loading="lazy" decoding="async" data-prev="${id}">
+          <div class="ph">Preview appears once the first forecast is ready.</div>
+          <figcaption><i></i>Live preview</figcaption></figure>
+        <a class="btn primary" href="app.html?layer=${encodeURIComponent(id)}">🗺️ Show on map</a>
+        <details class="hz-tech"><summary>Technical details</summary><div class="in" data-tech="${id}">${techHTML(id)}</div></details>
+      </div>
+    </article>`;
+  }
+  function build() {
+    document.getElementById("hz-body").innerHTML = GROUPS.map((g) => `<section class="hz-group" id="grp-${g.key}">
+        <h2>${esc(g.title)}</h2><p class="g-sub">${esc(g.sub)}</p>${g.items.map(cardHTML).join("")}</section>`).join("");
+    document.getElementById("hz-chips").innerHTML = GROUPS.map((g, i) => (i ? `<span class="sep" aria-hidden="true"></span>` : "")
+      + g.items.map((id) => `<a class="chip-btn" href="#hz-${id}" data-chip="${id}" data-hz="${id}"><i class="dot" aria-hidden="true"></i><span aria-hidden="true">${INFO[id].ico}</span>${esc(INFO[id].name)}</a>`).join("")).join("");
+    document.querySelectorAll("img[data-prev]").forEach((img) => {
+      img.addEventListener("load", () => img.parentElement.classList.add("has-img"));
+      img.addEventListener("error", () => { img.parentElement.classList.remove("has-img"); img.style.opacity = "0";
+        const ph = img.parentElement.querySelector(".ph"); if (ph) ph.textContent = "No live picture for this layer right now — try the map."; });
+    });
+    observe();
+  }
+  function refreshLegends() {
+    document.querySelectorAll("[data-legend]").forEach((el) => { el.innerHTML = legendHTML(el.dataset.legend); });
+    document.querySelectorAll("[data-tech]").forEach((el) => { el.innerHTML = techHTML(el.dataset.tech); });
+  }
+
+  // ---------- entrance + scroll-spy ----------
+  function observe() {
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const cards = document.querySelectorAll(".reveal");
+    if (reduce || !("IntersectionObserver" in window)) cards.forEach((c) => c.classList.add("in"));
+    else {
+      const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -8% 0px" });
+      cards.forEach((c) => io.observe(c));
+    }
+    if (!("IntersectionObserver" in window)) return;
+    const spy = new IntersectionObserver((es) => es.forEach((e) => {
+      if (!e.isIntersecting) return;
+      const id = e.target.id.slice(3);
+      document.querySelectorAll("[data-chip]").forEach((c) => {
+        const on = c.dataset.chip === id; c.classList.toggle("on", on);
+        if (on) { const box = c.parentElement; box.scrollTo({ left: c.offsetLeft - box.clientWidth / 2 + c.clientWidth / 2, behavior: reduce ? "auto" : "smooth" }); }
+      });
+    }), { rootMargin: "-40% 0px -55% 0px" });
+    document.querySelectorAll(".hz-card").forEach((c) => spy.observe(c));
+  }
+
+  // ---------- live facts ----------
+  const kmh = (ms) => Math.round(ms * 3.6);
+  const names = (list, n = 3) => { const s = list.slice(0, n).map((p) => p.name).join(", "); return list.length > n ? `${s} and ${list.length - n} more` : s; };
+  const hz = (p) => p.hazards || {};
+  const at = (lst) => lst.filter((p) => p.status !== "clear");
+  const ago = (s) => s == null ? "unknown" : s < 90 ? `${Math.round(s)} seconds` : `${Math.round(s / 60)} minutes`;
+
+  function facts(s) {
+    const places = s.places || [], cells = s.cells || [], inp = s.inputs || {}, stats = s.stats || {};
+    const maxBy = (arr, f) => arr.reduce((b, c) => (f(c) > (b ? f(b) : -Infinity) ? c : b), null);
+    const out = {};
+    const lv = stats.max_level_now || 0, risk = at(places);
+    out.level = { big: BB.LEVELS[lv] || "None", lv, txt: risk.length ? `${risk.length} place${risk.length > 1 ? "s" : ""} expect a storm: ${names(risk)}.` : "No tracked places expect a storm right now.", sev: lv };
+    const w60 = places.filter((p) => Array.isArray(p.levels) && Math.max(...p.levels.slice(0, 7)) >= 1);
+    const m60 = Math.max(0, ...places.map((p) => Array.isArray(p.levels) ? Math.max(...p.levels.slice(0, 7)) : 0));
+    out.level_60 = { big: BB.LEVELS[m60], lv: m60, txt: w60.length ? `Storm danger within the hour at ${names(w60)}.` : "No storms expected at tracked places in the next hour.", sev: m60 };
+    const w6 = places.filter((p) => (p.level_max || 0) >= 1);
+    const m6 = Math.max(0, ...places.map((p) => p.level_max || 0));
+    out.level_360 = { big: BB.LEVELS[m6], lv: m6, txt: w6.length ? `${w6.length} place${w6.length > 1 ? "s" : ""} may see storms in the next 6 hours, including ${names(w6)}.` : "Quiet outlook for tracked places over the next 6 hours.", sev: Math.min(m6, 2) };
+    const fr = cells.reduce((a, c) => a + (c.flash_rate || 0), 0), jumps = cells.filter((c) => c.lightning_jump);
+    const f10 = inp.flashes_10min || 0;
+    out.lightning = { big: `${f10.toLocaleString("en-IN")}`, unit: "strikes / 10 min", txt: f10 || fr ? `About ${Math.round(fr)} flashes a minute across ${cells.length} storm${cells.length === 1 ? "" : "s"}.${jumps.length ? ` Lightning is surging in ${jumps.length} storm${jumps.length > 1 ? "s" : ""} — severe weather likely soon.` : ""}` : "No lightning detected in the last 10 minutes.", sev: jumps.length ? 3 : f10 > 0 ? 2 : 0 };
+    const hc = maxBy(cells, (c) => c.hail || 0), hp = hc ? hc.hail || 0 : 0;
+    const hplaces = places.filter((p) => (hz(p).hail_prob || 0) >= 0.3);
+    out.hail = { big: pct(hp), unit: "highest chance", txt: hp >= 0.05 ? `Strongest hail risk${hc.where ? " " + hc.where : ""}.${hplaces.length ? ` Places at risk: ${names(hplaces)}.` : ""}` : "No hail expected right now.", sev: hp >= 0.6 ? 3 : hp >= 0.3 ? 2 : 0 };
+    const gc = maxBy(cells, (c) => c.gust || 0), g = gc ? gc.gust || 0 : 0;
+    out.gust = { big: g ? `${kmh(g)} km/h` : "Calm", unit: g ? "strongest gust" : "", txt: g >= 8 ? `Strongest storm winds${gc.where ? " " + gc.where : ""}.${g >= 20 ? " Strong enough to bring down trees and hoardings." : ""}` : "No strong storm gusts right now.", sev: g >= 25 ? 3 : g >= 15 ? 2 : 0 };
+    const cb = places.filter((p) => (hz(p).cloudburst_prob || 0) >= 0.3);
+    const cbmax = Math.max(0, ...places.map((p) => hz(p).cloudburst_prob || 0));
+    out.cloudburst = { big: cb.length ? `${cb.length}` : "None", unit: cb.length ? `place${cb.length > 1 ? "s" : ""} at risk` : "", txt: cb.length ? `Cloudburst chance of 30% or more at ${names(cb)} (highest ${pct(cbmax)}).` : "No place has a significant cloudburst risk right now.", sev: cb.length ? 3 : 0 };
+    const rp = maxBy(places, (p) => hz(p).rain1h_mm || 0), rmm = rp ? hz(rp).rain1h_mm || 0 : 0;
+    out.rain1h = { big: rmm ? `${Math.round(rmm)} mm` : "Dry", unit: rmm ? "most expected" : "", txt: rmm >= 1 ? `Heaviest rain expected at ${rp.name}${rp.state ? ", " + rp.state : ""}.` : "Little or no rain expected at tracked places.", sev: rmm >= 50 ? 3 : rmm >= 25 ? 2 : 0 };
+    const dc = maxBy(cells, (c) => c.max_dbz || 0), nr = Array.isArray(inp.radars) ? inp.radars.length : (inp.radars || 0);
+    out.dbz = { big: inp.radar_coverage_pct != null ? `${Math.round(inp.radar_coverage_pct)}%` : "—", unit: "of the area covered", txt: `${nr} radar${nr === 1 ? "" : "s"} reporting.${dc ? ` Strongest storm core${dc.where ? " " + dc.where : ""} (${Math.round(dc.max_dbz)} dBZ).` : " No significant storm echoes."}`, sev: dc && dc.max_dbz >= 55 ? 2 : 0 };
+    const bc = maxBy(cells.filter((c) => c.min_bt != null), (c) => -c.min_bt);
+    out.ir = { big: inp.satellite_age_s != null ? ago(inp.satellite_age_s) : "—", unit: inp.satellite_age_s != null ? "since last image" : "no image yet", txt: bc ? `Coldest (tallest) cloud top about ${Math.round(bc.min_bt - 273)}°C${bc.where ? " " + bc.where : ""}.` : "No very cold storm clouds detected.", sev: inp.satellite_age_s > 3600 ? 2 : 0 };
+    const ns = (s.ci || []).length;
+    out.qpe1h = { big: `${cells.length}`, unit: `active storm${cells.length === 1 ? "" : "s"}`, txt: `Rain estimated from radar where available, from satellite elsewhere.${ns ? ` ${ns} new storm${ns > 1 ? "s" : ""} starting to form.` : ""}`, sev: 0 };
+    const px = inp.proxy_pct || 0, cov = inp.radar_coverage_pct || 0;
+    out.confidence = { big: cov >= 60 ? "Good" : cov >= 25 ? "Fair" : "Limited", unit: "overall", txt: `${Math.round(cov)}% of the area has radar coverage; ${px.toFixed(px < 10 ? 1 : 0)}% relies on satellite and lightning estimates only.`, sev: cov < 25 ? 2 : 0 };
+    return out;
+  }
+
+  function render(s) {
+    const F = facts(s);
+    Object.keys(F).forEach((id) => {
+      const el = document.querySelector(`[data-now="${id}"]`); if (!el) return;
+      const f = F[id];
+      el.className = "hz-now-box" + (f.sev >= 3 ? " bad" : f.sev >= 2 ? " warn" : "");
+      const badge = f.lv != null ? `<span class="lvl l${f.lv}" style="font-size:14px;padding:4px 12px">${esc(f.big)}</span>` : `<span class="big mono">${esc(f.big)}</span>`;
+      el.innerHTML = `<div>${badge}${f.unit ? `<div class="fine" style="font-size:12px">${esc(f.unit)}</div>` : ""}</div>
+        <div><div class="lbl"><i></i>Right now · ${esc(BB.fmtIST(s.time))} IST</div><div class="txt">${esc(f.txt)}</div></div>`;
+    });
+    const risk = at(s.places || []), lv = (s.stats || {}).max_level_now || 0, inp = s.inputs || {};
+    document.getElementById("hz-now").innerHTML = `
+      <span class="hz-pill">Highest danger now <span class="lvl l${lv}">${esc(BB.LEVELS[lv])}</span></span>
+      <span class="hz-pill"><b>${risk.length}</b> place${risk.length === 1 ? "" : "s"} at risk</span>
+      <span class="hz-pill">⚡ <b>${esc((inp.flashes_10min || 0).toLocaleString("en-IN"))}</b> strikes in 10 min</span>
+      <span class="hz-pill">Updated <b>${esc(BB.fmtIST(s.time))}</b> IST</span>`;
+    // previews
+    CYCLE = s.cycle != null ? s.cycle : s.time;
+    document.querySelectorAll("img[data-prev]").forEach((img) => {
+      img.style.opacity = "";
+      img.src = BB.url(`/api/raster/${encodeURIComponent(img.dataset.prev)}/0.png?c=${encodeURIComponent(CYCLE)}`);
+    });
+  }
+
+  build();
+  BB.live({
+    onCycle(s, meta) {
+      if (meta && !META) { META = meta; refreshLegends(); }
+      SUM = s; render(s);
+    },
+    onPending(st, meta) {
+      if (meta && !META) { META = meta; refreshLegends(); }
+      document.getElementById("hz-now").innerHTML = `<span class="hz-pill">⏳ The first forecast is being prepared — live numbers will appear in a moment.</span>`;
+    },
+  }).then((meta) => {
+    if (meta && !META) { META = meta; refreshLegends(); }
+    if (!meta) {
+      document.getElementById("hz-now").innerHTML = `<span class="hz-pill">⚠️ Can't reach the forecast server. The guide below still works; live numbers will return when you reload.</span>`;
+      document.querySelectorAll("[data-now] .txt").forEach((el) => { el.textContent = "Live data unavailable — server offline."; });
+      document.querySelectorAll(".hz-prev .ph").forEach((el) => { el.textContent = "Preview unavailable while offline."; });
+    }
+  });
+})();
+</script>
+</body>
+</html>

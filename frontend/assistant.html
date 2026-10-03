@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask AI — BUMBLEBLE</title>
+<meta name="description" content="Ask the BUMBLEBLE assistant about thunderstorms, lightning, hail and safety near you, in plain language.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/pages.css">
+<style>
+  body { --brand-ink: color-mix(in srgb, var(--brand) 72%, var(--text)); --bubble-a: #0e7490; --bubble-b: #4f46e5; }
+  .chat-page { max-width: 860px; padding-bottom: 0; display: flex; flex-direction: column; min-height: calc(100vh - 60px); }
+  .chat-head { align-items: center; margin-bottom: 8px; }
+  .head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text-2); white-space: nowrap; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .pill.ai i { background: linear-gradient(135deg, var(--brand), var(--brand-2)); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .pill.ai { background: color-mix(in srgb, var(--brand) 12%, var(--surface)); border-color: color-mix(in srgb, var(--brand) 40%, var(--line)); color: var(--brand-ink); }
+  .pill.demo { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+  .pill.off { background: color-mix(in srgb, var(--bad) 10%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+  .pill.demo i { background: var(--warn); } .pill.off i { background: var(--bad); }
+  .kb-count { background: var(--brand-soft); color: var(--brand-ink); border-radius: 99px; padding: 0 7px; font-size: 12px; font-weight: 800; }
+
+  /* ---------- conversation ---------- */
+  .thread { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 12px 0 24px; }
+  .welcome { text-align: center; padding: 28px 0 8px; }
+  .welcome .orb { width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 22px; display: grid; place-items: center; font-size: 34px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2)); box-shadow: 0 12px 34px color-mix(in srgb, var(--brand) 32%, transparent), 0 0 0 6px var(--brand-soft); }
+  .welcome h2 { margin: 0; font-size: clamp(22px, 4vw, 30px); letter-spacing: -.025em; line-height: 1.2; }
+  .welcome > p { margin: 8px auto 0; color: var(--text-2); max-width: 540px; }
+  .live-note { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 8px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+    background: var(--surface); border: 1px solid var(--line); color: var(--text-2); }
+  .live-note b { color: var(--text); }
+  .live-note .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); }
+  .live-note.warn .dot { background: var(--l3); box-shadow: 0 0 0 4px color-mix(in srgb, var(--l3) 22%, transparent); }
+  .sugg-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 28px; text-align: left; }
+  .sugg-group h3 { margin: 0 0 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+    display: flex; align-items: center; gap: 6px; }
+  .sugg-list { display: flex; flex-direction: column; gap: 8px; }
+  .sugg { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 14px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 500; line-height: 1.35;
+    transition: border-color .15s, background .15s, transform .15s, box-shadow .15s; }
+  .sugg:hover { border-color: var(--brand); background: color-mix(in srgb, var(--brand-soft) 60%, var(--surface)); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+  /* each suggestion group gets its own tint (none of these are danger-level colours) */
+  .sugg-group { --tone: var(--brand); }
+  .loc-btn.on { border-color: color-mix(in srgb, #3b82f6 55%, var(--line)); background: color-mix(in srgb, #3b82f6 14%, var(--surface)); }
+  .sugg-group.t-safe  { --tone: #10b981; } .sugg-group.t-map { --tone: #0ea5e9; } .sugg-group.t-learn { --tone: #8b5cf6; }
+  [data-theme="light"] .sugg-group.t-safe { --tone: #047857; } [data-theme="light"] .sugg-group.t-map { --tone: #0369a1; }
+  [data-theme="light"] .sugg-group.t-learn { --tone: #6d28d9; }
+  .sugg-group h3 { color: color-mix(in srgb, var(--tone) 80%, var(--text)); }
+  .sugg-group h3 .ico { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-size: 14px;
+    background: color-mix(in srgb, var(--tone) 16%, transparent); border: 1px solid color-mix(in srgb, var(--tone) 35%, transparent); }
+  .sugg { border-left: 3px solid color-mix(in srgb, var(--tone) 55%, var(--line)); }
+  .sugg-group .sugg:hover { border-color: var(--tone); background: color-mix(in srgb, var(--tone) 10%, var(--surface));
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--tone) 18%, transparent); }
+  .sugg-group .sugg:hover .arr { color: var(--tone); }
+  .sugg .arr { margin-left: auto; color: var(--muted); flex: none; transition: transform .15s, color .15s; }
+  .sugg:hover .arr { color: var(--brand); transform: translateX(3px); }
+
+  .msg { display: flex; gap: 12px; align-items: flex-start; animation: rise .28s ease-out both; }
+  .msg.me { justify-content: flex-end; }
+  .avatar { width: 34px; height: 34px; border-radius: 11px; flex: none; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2)); box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-2) 30%, transparent); }
+  .avatar svg { width: 17px; height: 17px; fill: #fff; }
+  .bubble { max-width: min(640px, 86%); padding: 13px 16px; border-radius: 18px; font-size: 15px; line-height: 1.6; overflow-wrap: anywhere; }
+  .msg.me .bubble { background: linear-gradient(135deg, var(--bubble-a), var(--bubble-b)); color: #fff; box-shadow: 0 8px 22px color-mix(in srgb, var(--brand-2) 22%, transparent); border-bottom-right-radius: 6px; white-space: pre-wrap; }
+  .msg.bot .bubble { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, var(--brand) 6%), var(--surface)); border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--line)); box-shadow: var(--shadow-sm); border-top-left-radius: 6px; }
+  .msg.bot .bubble b { font-weight: 700; }
+  .msg.bot .bubble .ref { font-size: 11px; font-weight: 700; color: var(--brand-ink); vertical-align: super; line-height: 0; }
+  .msg.err .bubble { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); background: color-mix(in srgb, var(--bad) 8%, var(--surface)); }
+  .msg.err .avatar { background: var(--bad); box-shadow: none; }
+  .meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+  .cite { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text-2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cite b { color: var(--brand-ink); }
+  .model { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .when { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .msg.me .when { text-align: right; color: rgba(255, 255, 255, .85); }
+  .map-act { margin-top: 12px; padding: 12px; border-radius: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 12%, transparent), color-mix(in srgb, var(--brand-2) 12%, transparent)); border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent); }
+  .map-act .what { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .map-act .tag { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); color: var(--text-2); }
+  .map-act .tip { font-size: 12.5px; color: var(--text-2); margin-top: 8px; }
+  .note-ok { margin-top: 10px; font-size: 13px; color: var(--text-2); }
+  .typing .bubble { display: inline-flex; gap: 5px; padding: 16px 18px; }
+  .typing .bubble span { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite ease-in-out; }
+  .typing .bubble span:nth-child(2) { animation-delay: .15s; } .typing .bubble span:nth-child(3) { animation-delay: .3s; }
+  .caret { display: inline-block; width: 8px; height: 1.05em; margin-left: 2px; vertical-align: -2px; border-radius: 2px;
+    background: linear-gradient(180deg, var(--brand), var(--brand-2)); animation: caretBlink 1s steps(2) infinite; }
+  @keyframes caretBlink { 50% { opacity: 0; } }
+  .bubble.typing-now { cursor: pointer; }
+  .bubble .after { animation: afterIn .35s ease-out both; }
+  @keyframes afterIn { from { opacity: 0; transform: translateY(4px); } }
+  .typing small { display: block; color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+  /* ---------- composer ---------- */
+  .composer-wrap { position: sticky; bottom: 0; padding: 14px 0 12px; z-index: 5;
+    background: linear-gradient(to bottom, transparent, var(--bg) 26%); }
+  .composer { display: flex; align-items: flex-end; gap: 10px; padding: 8px 8px 8px 16px; border-radius: 22px;
+    background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); transition: border-color .15s, box-shadow .15s; }
+  .composer:focus-within { border-color: var(--brand); box-shadow: var(--shadow), 0 0 0 4px var(--brand-soft), 0 10px 34px var(--accent-glow); }
+  .composer textarea { flex: 1; min-width: 0; resize: none; border: 0; outline: 0; background: transparent; padding: 10px 0; max-height: 200px;
+    font-size: 16px; line-height: 1.5; color: var(--text); }
+  .composer textarea::placeholder { color: var(--muted); }
+  .send { width: 44px; height: 44px; flex: none; border-radius: 15px; border: 0; display: grid; place-items: center; color: #fff;
+    background: linear-gradient(135deg, var(--bubble-a), var(--bubble-b)); box-shadow: 0 6px 16px color-mix(in srgb, var(--brand-2) 30%, transparent); transition: transform .15s, opacity .15s, box-shadow .15s; }
+  .send:hover { transform: translateY(-1px); } .send:active { transform: scale(.94); }
+  .send:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+  .send svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .composer-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 8px; padding: 0 6px; font-size: 12px; color: var(--muted); }
+  .composer-foot kbd { font-family: "JetBrains Mono", monospace; font-size: 11px; padding: 1px 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface-2); }
+
+  /* ---------- knowledge drawer ---------- */
+  .kb-backdrop { position: fixed; inset: 0; z-index: 140; background: rgba(3, 7, 15, .5); opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .kb-backdrop.open { opacity: 1; pointer-events: auto; }
+  .kb { position: fixed; top: 0; right: 0; bottom: 0; z-index: 150; width: min(420px, 100vw); background: var(--surface); border-left: 1px solid var(--line);
+    box-shadow: var(--shadow); transform: translateX(100%); transition: transform .25s ease, visibility .25s; display: flex; flex-direction: column; visibility: hidden; }
+  .kb.open { transform: none; visibility: visible; }
+  .kb-head { display: flex; align-items: center; gap: 10px; padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
+  .kb-head h2 { margin: 0; font-size: 18px; letter-spacing: -.01em; }
+  .kb-head .bb-icon { margin-left: auto; }
+  .kb-body { overflow-y: auto; padding: 16px 18px 28px; display: flex; flex-direction: column; gap: 18px; }
+  .kb-intro { margin: 0; color: var(--text-2); font-size: 14px; }
+  .kb-docs { display: flex; flex-direction: column; gap: 8px; }
+  .kb-doc { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line-soft); }
+  .kb-doc .nm { min-width: 0; flex: 1; }
+  .kb-doc .nm div { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kb-doc .nm small { color: var(--muted); font-size: 12px; }
+  .del { width: 36px; height: 36px; flex: none; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--muted); display: grid; place-items: center; }
+  .del:hover { color: var(--bad); border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
+  .drop { display: block; text-align: center; padding: 20px 14px; border-radius: 14px; border: 1.5px dashed var(--line); background: var(--surface-2);
+    color: var(--text-2); font-size: 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--brand); background: var(--brand-soft); }
+  .drop b { color: var(--brand-ink); }
+  .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+  .field input, .field textarea { width: 100%; border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; font-size: 14px; outline: 0; }
+  .field input:focus, .field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .field textarea { min-height: 120px; resize: vertical; line-height: 1.5; }
+  .kb-msg { font-size: 13px; padding: 9px 12px; border-radius: 10px; }
+  .kb-msg.ok { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--text); }
+  .kb-msg.bad { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--text); }
+  .head-actions .btn.sm, .map-act .btn.sm, .retry { height: 38px; }
+  .kb h3 { margin: 0 0 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+  .welcome { animation: rise .4s ease-out both; }
+
+  @media (max-width: 760px) { .sugg-groups { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 600px) {
+    .chat-head .page-head-text p { font-size: 14px; }
+    .head-actions { width: 100%; }
+    .bubble { max-width: 90%; font-size: 14.5px; }
+    .avatar { width: 30px; height: 30px; }
+    .msg { gap: 8px; }
+    .hint-keys { display: none; }
+    .composer textarea::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="page chat-page">
+  <div class="page-head chat-head">
+    <div class="page-head-text">
+      <h1>Ask AI</h1>
+      <p>Plain-language answers about storms, lightning and safety near you.</p>
+    </div>
+    <div class="head-actions">
+      <span class="pill" id="provider" title="Checking the assistant…"><i></i><span>Checking…</span></span>
+      <button class="btn sm" id="kb-open" type="button" aria-controls="kb" aria-expanded="false" title="Documents the assistant can quote from">
+        <span aria-hidden="true">📚</span><span class="lbl">Knowledge</span><span class="kb-count" id="kb-count">–</span></button>
+      <button class="btn sm loc-btn" id="loc-btn" type="button" title="Share your location so answers are about where you are"><span aria-hidden="true">📍</span><span class="lbl" id="loc-lbl">Use my location</span></button>
+      <button class="btn sm" id="new-chat" type="button" title="Start a new conversation"><span aria-hidden="true">＋</span><span class="lbl">New chat</span></button>
+    </div>
+  </div>
+
+  <section class="thread" id="thread" aria-live="polite" aria-label="Conversation"></section>
+
+  <div class="composer-wrap">
+    <form class="composer" id="form" autocomplete="off">
+      <textarea id="input" rows="1" aria-label="Your question" maxlength="1000" placeholder="Ask about storms near you… e.g. “Is Patna safe tonight?”"></textarea>
+      <button class="send" id="send" type="submit" aria-label="Send question" title="Send">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+    </form>
+    <div class="composer-foot">
+      <span class="hint-keys"><kbd>Enter</kbd> to send · <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line</span>
+      <span>Guidance only — always follow official IMD warnings.</span>
+    </div>
+  </div>
+</main>
+
+<div class="kb-backdrop" id="kb-backdrop"></div>
+<aside class="kb" id="kb" role="dialog" aria-modal="true" aria-labelledby="kb-title">
+  <div class="kb-head">
+    <span aria-hidden="true" style="font-size:22px">📚</span>
+    <h2 id="kb-title">Knowledge base</h2>
+    <button class="bb-icon" id="kb-close" type="button" aria-label="Close knowledge base">✕</button>
+  </div>
+  <div class="kb-body">
+    <p class="kb-intro">These are the documents the assistant reads before answering “how” and “what should I do” questions. Add your own local guidance — district SOPs, crop advice, airport procedures — and it will quote them.</p>
+    <div id="kb-status" class="kb-msg hidden" role="status"></div>
+    <div>
+      <h3>Documents</h3>
+      <div class="kb-docs" id="kb-list"><div class="fine">Loading…</div></div>
+    </div>
+    <div>
+      <h3>Upload a file</h3>
+      <label class="drop" id="kb-drop">
+        <input type="file" id="kb-file" accept=".md,.txt,text/plain,text/markdown" multiple>
+        <span aria-hidden="true" style="font-size:22px;display:block;margin-bottom:4px">⬆️</span>
+        <b>Choose a file</b> or drop it here<br><span class="fine">Plain text (.txt) or Markdown (.md)</span>
+      </label>
+    </div>
+    <div>
+      <h3>Or paste some text</h3>
+      <div class="field" style="margin-bottom:10px">
+        <label for="kb-name">Title</label>
+        <input id="kb-name" maxlength="80" placeholder="e.g. Hail advice for mango farmers">
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <label for="kb-text">Text</label>
+        <textarea id="kb-text" placeholder="Paste the guidance here…"></textarea>
+      </div>
+      <button class="btn primary" id="kb-save" type="button">Add to knowledge base</button>
+    </div>
+  </div>
+</aside>
+
+<script src="static/config.js"></script>
+<script src="static/pages.js"></script>
+<script>
+(() => {
+  "use strict";
+  BB.nav("assistant");
+  const $ = (id) => document.getElementById(id);
+  const esc = BB.esc;
+  const root = document.documentElement;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const touch = matchMedia("(pointer: coarse)").matches; // don't pop the phone keyboard after every reply
+  const PROVIDER_NAMES = { gemini: "Gemini", claude: "Claude", demo: "Demo mode" };
+  const LAYER_NAMES = { level: "Storm threat", level_60: "Worst threat in next 1 h", level_360: "Worst threat in next 6 h",
+    lightning: "Lightning", hail: "Hail chance", gust: "Strong winds", cloudburst: "Cloudburst risk", rain1h: "Rain next hour",
+    dbz: "Radar", ir: "Satellite (infrared)", qpe1h: "Rain last hour", confidence: "Forecast confidence" };
+  const BASEMAP_NAMES = { auto: "Standard", streets: "Streets", satellite: "Satellite photo", hybrid: "Satellite with labels", terrain: "Terrain", topo: "Topographic" };
+  const OVERLAY_NAMES = { cells: "Storm outlines", strikes: "Lightning strikes", ci: "New storms forming", clocks: "Arrival clocks",
+    motion: "Storm movement arrows", radars: "Radar sites", rainviewer: "Live radar", gibs: "NASA rainfall" };
+  const BOLT = '<svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>';
+
+  const S = { history: [], busy: false, places: [], risk: null };
+
+  // ------------------------------------------------------------ provider pill
+  BB.getJSON("/api/assistant/info").then((j) => {
+    const p = $("provider");
+    const demo = j.provider === "demo";
+    p.className = "pill " + (demo ? "demo" : "ai");
+    p.querySelector("span").textContent = demo ? "Demo mode" : `AI · ${PROVIDER_NAMES[j.provider] || j.provider}`;
+    p.title = demo ? "Demo mode: answers come from built-in rules (no AI key configured)."
+      : `${j.mode}${j.model ? " — " + j.model : ""} · reads ${j.knowledge_docs} reference documents${j.embeddings ? " (semantic + keyword search)" : ""}`;
+  }).catch(() => { const p = $("provider"); p.className = "pill off"; p.querySelector("span").textContent = "Assistant offline"; });
+
+  // ------------------------------------------------------------ welcome
+  function suggestions() {
+    const risk = S.risk;
+    const safeQ = risk ? `Is ${risk.name} safe in the next 2 hours?` : "Is Kolkata safe in the next 2 hours?";
+    return [
+      { tone: "safe", ico: "🛡️", title: "Am I safe?", items: ["📍 Am I safe where I am right now?", "Which cities are at risk?", safeQ] },
+      { tone: "map", ico: "🗺️", title: "Show me on the map", items: ["Show hail risk in 2 hours", "Show lightning now", "Zoom to Kolkata"] },
+      { tone: "learn", ico: "📖", title: "Learn", items: ["What does a lightning jump mean?", "What should farmers do before hail?", "What should I do if I hear thunder outdoors?"] },
+    ];
+  }
+  function liveNote() {
+    if (!S.places.length) return "";
+    const n = S.places.filter((p) => p.status !== "clear").length;
+    if (!n) return `<div class="live-note"><span class="dot"></span>No storms heading for the ${S.places.length} places we watch right now.</div>`;
+    return `<div class="live-note warn"><span class="dot"></span><span><b>${n}</b> ${n === 1 ? "place has" : "places have"} storms on the way — ask “Which cities are at risk?”</span></div>`;
+  }
+  function renderWelcome() {
+    if (S.history.length || $("thread").querySelector(".msg")) return;
+    $("thread").innerHTML = `<div class="welcome">
+        <div class="orb" aria-hidden="true">⛈️</div>
+        <h2>Ask anything about storms near you</h2>
+        <p>Type a question in your own words — in English or Hindi. I use the latest live forecast and trusted safety guidance, and I can open the right view on the map for you.</p>
+        <div id="live-note">${liveNote()}</div>
+        <div class="sugg-groups">${suggestions().map((g) => `<div class="sugg-group t-${g.tone}">
+            <h3><span class="ico" aria-hidden="true">${g.ico}</span>${esc(g.title)}</h3>
+            <div class="sugg-list">${g.items.map((q) => `<button type="button" class="sugg" data-q="${esc(q)}"><span>${esc(q)}</span><span class="arr" aria-hidden="true">→</span></button>`).join("")}</div>
+          </div>`).join("")}</div>
+      </div>`;
+    $("thread").querySelectorAll(".sugg").forEach((b) => b.onclick = () => ask(b.dataset.q));
+  }
+
+  // ------------------------------------------------------------ messages
+  const md = (t) => esc(t).replace(/^[ \t]*[-*][ \t]+/gm, "• ").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\[(\d{1,2})\]/g, '<span class="ref">[$1]</span>').replace(/\n/g, "<br>");
+  const stamp = () => `<div class="when">${BB.fmtIST(Date.now() / 1000)} IST</div>`;
+  function scrollDown() { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduced ? "auto" : "smooth" }); }
+  function addMsg(kind, inner) {
+    const w = $("thread").querySelector(".welcome"); if (w) w.remove();
+    const el = document.createElement("div");
+    el.className = "msg " + kind;
+    el.innerHTML = kind === "me" ? `<div class="bubble">${inner}</div>`
+      : `<div class="avatar" aria-hidden="true">${kind.includes("err") ? '<span style="color:#fff;font-weight:800">!</span>' : BOLT}</div><div class="bubble">${inner}</div>`;
+    $("thread").appendChild(el); scrollDown(); return el;
+  }
+
+  function setTheme(t) {
+    root.dataset.theme = t; BB.store.set("theme", t);
+    const b = $("bb-theme"); if (b) b.textContent = t === "dark" ? "☀️" : "🌙";
+    root.dispatchEvent(new Event("themechange"));
+  }
+  // Turn the assistant's map actions into a deep link to /app (and apply the theme here too).
+  function actionsBlock(actions) {
+    if (!actions || !actions.length) return "";
+    const q = new URLSearchParams(), tags = [], tips = [], notes = [];
+    for (const a of actions) {
+      if (a.type === "set_layer" && a.layer) { q.set("layer", a.layer); tags.push("🗂️ " + (LAYER_NAMES[a.layer] || a.layer)); }
+      else if (a.type === "set_lead" && a.lead_min != null) {
+        q.set("lead", String(a.lead_min));
+        const m = +a.lead_min;
+        tags.push("⏱️ " + (m === 0 ? "Right now" : m < 60 ? `In ${m} min` : `In ${+(m / 60).toFixed(1)} h`));
+      } else if (a.type === "fly_to" && isFinite(a.lat) && isFinite(a.lon)) {
+        q.set("lat", (+a.lat).toFixed(3)); q.set("lon", (+a.lon).toFixed(3)); q.set("z", String(a.zoom || 9));
+        tags.push("📍 " + (a.place || `${(+a.lat).toFixed(2)}, ${(+a.lon).toFixed(2)}`));
+      } else if (a.type === "set_basemap" && a.basemap) { q.set("basemap", a.basemap); tags.push("🌍 " + (BASEMAP_NAMES[a.basemap] || a.basemap) + " map"); }
+      else if (a.type === "toggle_overlay" && a.overlay) {
+        const nm = OVERLAY_NAMES[a.overlay] || a.overlay;
+        tags.push((a.on ? "➕ " : "➖ ") + nm);
+        tips.push(`${a.on ? "turn on" : "turn off"} “${nm}”`);
+      } else if (a.type === "set_theme" && a.theme) {
+        setTheme(a.theme); notes.push(`Switched to ${a.theme} theme on this page.`);
+      }
+    }
+    let html = notes.length ? `<div class="note-ok">✓ ${esc(notes.join(" "))}</div>` : "";
+    if (!tags.length) return html;
+    if (q.has("lead") && !q.has("layer")) q.set("layer", "level");
+    const href = "app.html" + (q.toString() ? "?" + q.toString() : "");
+    html += `<div class="map-act">
+        <div class="what">${tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+        <a class="btn primary sm" href="${esc(href)}">Open this on the map ↗</a>
+        ${tips.length ? `<div class="tip">On the map, open <b>Layers</b> and ${esc(tips.join(", "))}.</div>` : ""}
+      </div>`;
+    return html;
+  }
+
+  // Typewriter reveal: the reply types itself out with a blinking cursor (whole reply at once if reduced motion).
+  // Long answers speed up so typing never takes more than ~2.5 s; tap the bubble to finish instantly.
+  function typeOut(el, reply, extras) {
+    const b = el.querySelector(".bubble");
+    const finish = () => { b.innerHTML = md(reply) + (extras ? `<div class="after">${extras}</div>` : ""); b.classList.remove("typing-now"); scrollDown(); };
+    if (reduced) { finish(); return Promise.resolve(); }
+    return new Promise((resolve) => {
+      let i = 0, done = false;
+      const step = Math.max(1, Math.ceil(reply.length / 150));
+      b.classList.add("typing-now"); b.setAttribute("aria-busy", "true"); b.title = "Tap to show the whole answer";
+      const end = () => { if (done) return; done = true; b.removeAttribute("aria-busy"); b.title = ""; finish(); resolve(); };
+      b.addEventListener("click", end, { once: true });
+      (function tick() {
+        if (done) return;
+        i = Math.min(reply.length, i + step);
+        // never stop inside "**" so bold text doesn't flicker as raw asterisks
+        let cut = i; const head = reply.slice(0, cut); if (head.split("**").length % 2 === 0) cut = head.lastIndexOf("**");
+        b.innerHTML = md(reply.slice(0, cut)) + '<span class="caret" aria-hidden="true"></span>';
+        window.scrollTo(0, document.documentElement.scrollHeight);
+        if (i >= reply.length) end(); else setTimeout(tick, 16);
+      })();
+    });
+  }
+
+  // ------------------------------------------------------------ my location (asks permission; only sent with questions)
+  S.loc = null;
+  function showLoc() {
+    $("loc-btn").classList.toggle("on", !!S.loc);
+    $("loc-lbl").textContent = S.loc ? (S.loc.name || "My location") + " ✕" : "Use my location";
+    $("loc-btn").title = S.loc ? "Stop sharing your location" : "Share your location so answers are about where you are";
+  }
+  async function shareLoc() {
+    $("loc-lbl").textContent = "Finding you…";
+    try { S.loc = await BB.locate(); }
+    catch (e) { S.loc = null; addMsg("bot err", `<b>Couldn’t get your location.</b><br><span class="fine">${esc(e.message)}</span>`); }
+    showLoc(); return !!S.loc;
+  }
+  $("loc-btn").onclick = () => { if (S.loc) { S.loc = null; showLoc(); } else shareLoc(); };
+  BB.locationGranted().then((ok) => { if (ok) shareLoc(); });
+
+  async function ask(text, retryEl) {
+    text = (text || "").trim();
+    if (!text || S.busy) return;
+    if (/^📍/.test(text) || /\b(where i am|my location|near me)\b/i.test(text)) {
+      text = text.replace(/^📍\s*/, "");
+      if (!S.loc && !(await shareLoc())) return;
+    }
+    setBusy(true);
+    if (retryEl) retryEl.remove();
+    else { addMsg("me", esc(text) + stamp()); $("input").value = ""; grow(); }
+    const wait = addMsg("bot typing", "<span></span><span></span><span></span>");
+    wait.querySelector(".bubble").setAttribute("aria-label", "The assistant is typing");
+    try {
+      const j = await BB.post("/api/assistant", { message: text, history: S.history.slice(-8),
+          location: S.loc ? { lat: S.loc.lat, lon: S.loc.lon, name: S.loc.name, accuracy_m: S.loc.accuracy } : null });
+      wait.remove();
+      const reply = j.reply || "Done.";
+      const srcs = (j.sources || []).filter((s) => new RegExp("\\[" + s.n + "\\]").test(reply) || j.provider === "demo").slice(0, 3);
+      const cite = srcs.length ? `<div class="meta-row"><span class="fine">Sources:</span>${srcs.map((s) =>
+        `<span class="cite" title="${esc(s.title)}"><b>[${esc(s.n)}]</b>${esc(String(s.doc || "").replace(/\.(md|txt)$/, "").replace(/^\d+_/, "").replace(/_/g, " "))}</span>`).join("")}</div>` : "";
+      const who = j.model ? `<div class="model">${esc(PROVIDER_NAMES[j.provider] || j.provider)} · ${esc(j.model)}</div>`
+        : j.provider === "demo" ? `<div class="model">Demo mode answer</div>` : "";
+      S.history.push({ role: "user", content: text }, { role: "assistant", content: reply });
+      await typeOut(addMsg("bot", ""), reply, actionsBlock(j.actions) + cite + who);
+    } catch (err) {
+      wait.remove();
+      const why = err instanceof TypeError ? "Can’t reach the BUMBLEBLE server — check your internet connection." : String(err.message || err);
+      const el = addMsg("bot err", `<b>Sorry — I couldn’t get an answer just now.</b><br><span class="fine">${esc(why)}</span>
+        <div class="meta-row"><button type="button" class="btn sm retry">↻ Try again</button></div>`);
+      el.querySelector(".retry").onclick = () => ask(text, el);
+    } finally { setBusy(false); }
+  }
+
+  // ------------------------------------------------------------ composer
+  const input = $("input");
+  function grow() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 200) + "px"; }
+  function setBusy(b) {
+    S.busy = b; input.disabled = b; $("send").disabled = b || !input.value.trim();
+    input.placeholder = b ? "Thinking…" : "Ask about storms near you… e.g. “Is Patna safe tonight?”";
+    if (!b && !touch) input.focus({ preventScroll: true });
+  }
+  input.addEventListener("input", () => { grow(); $("send").disabled = S.busy || !input.value.trim(); });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(input.value); }
+  });
+  $("form").onsubmit = (e) => { e.preventDefault(); ask(input.value); };
+  $("send").disabled = true;
+  $("new-chat").onclick = () => {
+    if (S.busy) return;
+    S.history = []; $("thread").innerHTML = ""; renderWelcome(); input.value = ""; grow();
+    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" }); input.focus();
+  };
+
+  // ------------------------------------------------------------ knowledge base drawer
+  const kb = $("kb"), back = $("kb-backdrop");
+  let lastFocus = null;
+  function openKB(o) {
+    kb.classList.toggle("open", o); back.classList.toggle("open", o);
+    $("kb-open").setAttribute("aria-expanded", String(o));
+    if (o) { lastFocus = document.activeElement; loadKB(); setTimeout(() => $("kb-close").focus(), 50); }
+    else if (lastFocus) lastFocus.focus();
+  }
+  $("kb-open").onclick = () => openKB(true);
+  $("kb-close").onclick = back.onclick = () => openKB(false);
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && kb.classList.contains("open")) openKB(false); });
+  function kbSay(kind, text) {
+    const s = $("kb-status"); s.className = "kb-msg " + kind; s.textContent = text;
+    clearTimeout(kbSay.t); kbSay.t = setTimeout(() => s.classList.add("hidden"), 6000);
+  }
+  async function loadKB() {
+    try {
+      const j = await BB.getJSON("/api/knowledge");
+      $("kb-count").textContent = j.docs.length;
+      $("kb-list").innerHTML = j.docs.map((d) => `<div class="kb-doc">
+          <span aria-hidden="true">📄</span>
+          <div class="nm"><div title="${esc(d.name)}">${esc(d.name)}</div><small>${esc(d.chunks)} passages</small></div>
+          <button type="button" class="del" data-del="${esc(d.name)}" title="Remove" aria-label="Remove ${esc(d.name)}">✕</button></div>`).join("")
+        || `<div class="fine">No documents yet — add one below.</div>`;
+      $("kb-list").querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
+        const name = b.dataset.del;
+        if (!confirm(`Remove ${name} from the knowledge base?`)) return;
+        try {
+          await BB.del("/api/knowledge/" + encodeURIComponent(name));
+          kbSay("ok", `Removed ${name}.`);
+        } catch (err) { kbSay("bad", `Could not remove ${name} (${err.message}).`); }
+        loadKB();
+      });
+    } catch (_) {
+      $("kb-count").textContent = "–";
+      $("kb-list").innerHTML = `<div class="fine">Knowledge base unavailable.</div>`;
+    }
+  }
+  async function saveDoc(name, text) {
+    try {
+      await BB.post("/api/knowledge", { name, text });
+      kbSay("ok", `Added ${name} — the assistant can now quote it.`); loadKB(); return true;
+    } catch (err) { kbSay("bad", `Could not add ${name}: ${err.message || err}`); return false; }
+  }
+  async function addFiles(files) {
+    for (const f of files) {
+      if (!/\.(md|txt)$/i.test(f.name)) { kbSay("bad", `${f.name} is not a .md or .txt file.`); continue; }
+      await saveDoc(f.name, await f.text());
+    }
+  }
+  $("kb-file").onchange = async (e) => { await addFiles([...e.target.files]); e.target.value = ""; };
+  const drop = $("kb-drop");
+  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => addFiles([...(e.dataTransfer?.files || [])]));
+  $("kb-save").onclick = async () => {
+    const t = $("kb-text").value.trim(), title = $("kb-name").value.trim();
+    if (!t) { kbSay("bad", "Paste some text first."); $("kb-text").focus(); return; }
+    const ok = await saveDoc((title || "note") + ".md", `# ${title || "Note"}\n\n${t}`);
+    if (ok) { $("kb-text").value = ""; $("kb-name").value = ""; }
+  };
+  loadKB();
+
+  // ------------------------------------------------------------ live data (status + smarter suggestions)
+  BB.live({
+    onCycle(sum) {
+      S.places = sum.places || [];
+      const atRisk = S.places.filter((p) => p.status !== "clear")
+        .sort((a, b) => (b.level_max || 0) - (a.level_max || 0) || (a.eta_min ?? 999) - (b.eta_min ?? 999));
+      const prev = S.risk && S.risk.id;
+      S.risk = atRisk[0] || null;
+      const w = $("thread").querySelector(".welcome");
+      if (w) {
+        if ((S.risk && S.risk.id) !== prev) renderWelcome();
+        else $("live-note").innerHTML = liveNote();
+      }
+    },
+  });
+
+  renderWelcome();
+  const q = new URLSearchParams(location.search).get("ask");
+  if (q) {
+    const u = new URL(location.href); u.searchParams.delete("ask"); history.replaceState(null, "", u.pathname + u.search + u.hash);
+    setTimeout(() => ask(q), 300);
+  } else if (!touch) input.focus({ preventScroll: true });
+})();
+</script>
+</body>
+</html>

@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -29,6 +30,7 @@ _load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 from . import assistant as ai  # noqa: E402
 from . import rag  # noqa: E402
 from . import exports  # noqa: E402
+from .weather import WeatherService  # noqa: E402
 from .engine import RASTER_PRODUCTS, NowcastEngine  # noqa: E402
 from .render import LEGENDS, legend_stops  # noqa: E402
 
@@ -36,6 +38,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
 
 engine = NowcastEngine()
+weather = WeatherService(engine.meta()["places"])
 assistant_provider = ai.get_provider()
 knowledge = rag.KnowledgeBase(embedder=getattr(assistant_provider, "embed", None))
 
@@ -49,7 +52,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="BUMBLEBLE Convective Nowcasting System", version="1.0", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=FRONTEND), name="static")
+app.mount("/static", StaticFiles(directory=FRONTEND / "static"), name="static")
+# The pages may also be hosted elsewhere (Netlify, Vercel, GitHub Pages) and call this API cross-origin.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
 @app.get("/")
@@ -59,7 +64,21 @@ def landing():
 
 @app.get("/app")
 def dashboard():
-    return FileResponse(FRONTEND / "index.html")
+    return FileResponse(FRONTEND / "app.html")
+
+
+PAGES = {"app", "arrivals", "alerts", "hazards", "assistant", "system"}
+
+
+@app.get("/{page}")
+def page(page: str):
+    # one page per dashboard section; both /arrivals and /arrivals.html work (pages link with .html for static hosts)
+    name = page[:-5] if page.endswith(".html") else page
+    if name in ("index", "landing"):
+        return FileResponse(FRONTEND / "landing.html")
+    if name not in PAGES:
+        raise HTTPException(404)
+    return FileResponse(FRONTEND / f"{name}.html")
 
 
 @app.get("/api/meta")
@@ -93,6 +112,25 @@ def point(lat: float, lon: float):
     if p is None:
         raise HTTPException(404, "outside domain or no analysis yet")
     return p
+
+
+# ---- live surface weather (Open-Meteo, free & keyless) ----
+@app.get("/api/weather")
+def weather_point(lat: float, lon: float):
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise HTTPException(400, "lat/lon out of range")
+    try:
+        return weather.point(lat, lon)
+    except Exception as exc:
+        raise HTTPException(502, f"weather service unavailable: {exc}")
+
+
+@app.get("/api/weather/places")
+def weather_places():
+    try:
+        return weather.places_now()
+    except Exception as exc:
+        raise HTTPException(502, f"weather service unavailable: {exc}")
 
 
 class SpeedReq(BaseModel):
@@ -140,9 +178,36 @@ async def push_lightning(records: list[dict]):
     raise HTTPException(409, "HTTP lightning push is only enabled in live mode")
 
 
+class UserLocation(BaseModel):
+    lat: float
+    lon: float
+    name: str = ""
+    accuracy_m: float | None = None
+
+
 class AskReq(BaseModel):
     message: str
     history: list[dict] = []
+    location: UserLocation | None = None  # shared by the browser only after the user allows it
+
+
+def _user_location_context(loc: UserLocation) -> dict:
+    """Forecast + live weather at the user's own position, added to the assistant's context."""
+    out = {"lat": round(loc.lat, 4), "lon": round(loc.lon, 4), "name": loc.name[:120], "accuracy_m": loc.accuracy_m}
+    p = engine.point(loc.lat, loc.lon)
+    if p is None:
+        out["storm_forecast"] = "outside the forecast area (East & North-East India) - no storm nowcast here"
+    else:
+        lv, leads = p["level"], p["leads"]
+        first = next((leads[i] for i, x in enumerate(lv) if x >= 2), None)
+        out["storm_forecast"] = {"where": p["where"], "max_level_next_6h": max(lv), "level_now": lv[0],
+                                 "minutes_until_moderate_or_worse": first,
+                                 "max_hail_prob": round(max(p["hail"]), 2), "max_gust_kmh": round(max(p["gust"]) * 3.6)}
+    try:
+        out["weather_now"] = weather.point(loc.lat, loc.lon)["now"]
+    except Exception:
+        pass
+    return out
 
 
 @app.get("/api/assistant/info")
@@ -160,6 +225,8 @@ def ask(req: AskReq):
         raise HTTPException(400, "empty message")
     summary = engine.snapshot.summary if engine.snapshot else None
     ctx = ai.build_context(summary, engine.places)
+    if req.location is not None:
+        ctx["user_location"] = _user_location_context(req.location)
     return ai.respond(assistant_provider, msg, req.history, ctx, engine.places, knowledge)
 
 
